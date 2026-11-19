@@ -1,0 +1,77 @@
+{% extends "events/base.html" %}
+
+{% block title %}{{ talk.title }} - Tannoy{% endblock %}
+
+{% block content %}
+  <div class="col-9">
+    <p class="p-text--small u-text--muted">
+      <a href="{% url 'submissions' %}">Submissions</a> / Talk detail
+    </p>
+    <h1 class="p-heading--2">{{ talk.title }}</h1>
+
+    <h2 class="p-heading--5">Speakers</h2>
+    {% for speaker in speakers %}
+      <div class="row u-vertically-center">
+        <div class="col-1">
+          {% if speaker.headshot %}
+            <img class="speaker-headshot" src="{{ speaker.headshot.url }}" alt="Headshot of {{ speaker.name }}">
+          {% else %}
+            <span class="p-icon--user" aria-hidden="true"></span>
+          {% endif %}
+        </div>
+        <div class="col-8">
+          <p class="u-no-margin--bottom"><strong>{{ speaker.name }}</strong>
+            {% if speaker.requests_sponsorship %}<span class="p-chip--information"><span class="p-chip__value">Requests sponsorship</span></span>{% endif %}
+          </p>
+          <p class="p-text--small u-text--muted">
+            Speaker{% if speaker.affiliation %} &middot; {{ speaker.affiliation }}{% endif %}
+          </p>
+        </div>
+      </div>
+    {% empty %}
+      <p class="u-text--muted">No speakers have been added to this talk.</p>
+    {% endfor %}
+
+    <h2 class="p-heading--5">Summary</h2>
+    {% if talk.summary %}
+      <p class="u-text--muted">{{ talk.summary|linebreaksbr }}</p>
+    {% else %}
+      <p class="u-text--muted">No summary provided.</p>
+    {% endif %}
+
+    {% if talk.duration_minutes %}
+      <p class="p-heading--5">{{ talk.duration_minutes }} mins</p>
+    {% endif %}
+
+    <p class="p-text--small u-text--muted">
+      {{ talk.event.name }} ({{ talk.event.date|date:"d.m.Y" }}) &middot;
+      Submitted {{ talk.submitted_at|date:"d.m.Y" }}
+    </p>
+  </div>
+
+  <div class="col-3">
+    <div class="p-card">
+      <h2 class="p-heading--5">Current status</h2>
+      {% if talk.status == 'accepted' %}
+        <p><span class="p-chip--positive"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
+      {% elif talk.status == 'rejected' %}
+        <p><span class="p-chip--negative"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
+      {% else %}
+        <p><span class="p-chip--caution"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
+      {% endif %}
+
+      <h2 class="p-heading--5">Tools</h2>
+      {% if request.user.is_staff %}
+        <form method="post" action="{% url 'talk-detail' talk.id %}">
+          {% csrf_token %}
+          <button type="submit" name="action" value="accept" class="p-button--positive is-small u-no-margin--bottom" style="width:100%">Accept</button>
+        </form>
+        <form method="post" action="{% url 'talk-detail' talk.id %}">
+          {% csrf_token %}
+          <button type="submit" name="action" value="reject" class="p-button--negative is-small" style="width:100%">Reject</button>
+        </form>
+      {% endif %}
+      <button type="button" class="p-button--brand is-small" style="width:100%" disabled title="Publishing is not defined yet">Publish</button>
+    </div>
+  </div>
+{% endblock %}

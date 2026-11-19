@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Tannoy{% endblock %}</title>
+  <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-4.20.0.min.css">
+  <style>
+    .speaker-headshot {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="p-navigation is-dark">
+    <div class="p-navigation__banner">
+      <div class="p-navigation__tagged-logo">
+        <a class="p-navigation__link" href="{% url 'submissions' %}">
+          <span class="p-navigation__logo-title">Tannoy</span>
+        </a>
+      </div>
+    </div>
+    <nav class="p-navigation__nav" aria-label="Main navigation">
+      <ul class="p-navigation__items">
+        <li class="p-navigation__item">
+          <a class="p-navigation__link" href="{% url 'submissions' %}"{% if section == 'submissions' %} aria-current="page"{% endif %}>Submissions</a>
+        </li>
+        <li class="p-navigation__item">
+          <a class="p-navigation__link" href="{% url 'admin:events_event_changelist' %}"{% if section == 'events' %} aria-current="page"{% endif %}>Events</a>
+        </li>
+      </ul>
+      <ul class="p-navigation__items u-align--right">
+        <li class="p-navigation__item">
+          <a class="p-navigation__link" href="{% url 'admin:index' %}">My account</a>
+        </li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="p-strip--light">
+    <div class="row">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</body>
+</html>

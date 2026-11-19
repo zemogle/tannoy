@@ -4,10 +4,18 @@ from django.utils import timezone
 
 from .storage import HeadshotStorage
 
+
 class Status(models.TextChoices):
     PENDING = 'pending', 'Pending'
     ACCEPTED = 'accepted', 'Accepted'
     REJECTED = 'rejected', 'Rejected'
+
+class Topic(models.TextChoices):
+    DEVICES = 'topic-devices', 'Devices'
+    SECURITY = 'topic-security', 'Security'
+    DEV = 'topic-dev', 'Developers'
+    AI = 'topic-ai', 'AI'
+
 
 class Speaker(models.Model):
     name = models.CharField(max_length=200)
@@ -40,7 +48,7 @@ class Talk(models.Model):
     LIGHTNING = 5
     SHORT = 25
     LONG = 45
-    DURATION_CHOICES = [
+    DURATION_CHOICES = [  # noqa: RUF012
         (LIGHTNING, 'Lightning talk (5 mins)'),
         (SHORT, 'Short talk (25 mins)'),
         (LONG, 'Long talk (45 mins)'),
@@ -63,7 +71,13 @@ class Talk(models.Model):
         default=Status.PENDING,
     )
     submitted_at = models.DateTimeField(default=timezone.now)
-    summary = models.TextField(blank=True)
+    abstract = models.TextField(blank=True)
+    topic = models.CharField(
+        max_length=32,
+        choices=Topic.choices,
+        blank=True,
+    )
+    discourse_id = models.IntegerField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(
         choices=DURATION_CHOICES,
         null=True,
@@ -71,7 +85,7 @@ class Talk(models.Model):
     )
 
     class Meta:
-        constraints = [
+        constraints = [  # noqa: RUF012
             models.CheckConstraint(
                 condition=models.Q(duration_minutes__isnull=True)
                 | models.Q(duration_minutes__in=[5, 25, 45]),
@@ -93,7 +107,7 @@ class Programme(models.Model):
     day = models.PositiveIntegerField()
 
     class Meta:
-        constraints = [
+        constraints = [  # noqa: RUF012
             models.UniqueConstraint(
                 fields=['event', 'day'],
                 name='unique_day_per_event',

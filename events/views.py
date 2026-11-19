@@ -6,6 +6,8 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
+from django.views.generic import DetailView
 from django.views.decorators.http import require_http_methods
 
 from .models import Break, Event, Programme, ProgrammeItem, Speaker, Status, Talk
@@ -204,34 +206,43 @@ def submissions(request):
     })
 
 
-@staff_member_required
-@require_http_methods(['GET', 'POST'])
-def talk_detail(request, talk_id):
+@method_decorator(staff_member_required, name='dispatch')
+class TalkDetailView(DetailView):
     """
-    GET: show a talk with its speakers, summary and current status.
+    GET: show a talk with its speakers, abstract and current status.
     POST (action=accept|reject): set the talk's status, then redirect back.
     """
-    talk = get_object_or_404(Talk.objects.select_related('event', 'speaker'), pk=talk_id)
 
-    if request.method == 'POST':
-        new_status = {
-            'accept': Status.ACCEPTED,
-            'reject': Status.REJECTED,
-        }.get(request.POST.get('action'))
+    model = Talk
+    template_name = 'events/talk_detail.html'
+    context_object_name = 'talk'
+    pk_url_kwarg = 'talk_id'
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    ACTIONS = {  # noqa: RUF012
+        'accept': Status.ACCEPTED,
+        'reject': Status.REJECTED,
+    }
+
+    def get_queryset(self):
+        return Talk.objects.select_related('event', 'speaker')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Speakers include the talk's main speaker and any linked via Speaker.talks.
+        context['speakers'] = (
+            Speaker.objects.filter(Q(pk=self.object.speaker_id) | Q(talks=self.object))
+            .distinct()
+            .order_by('name')
+        )
+        context['section'] = 'submissions'
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        new_status = self.ACTIONS.get(request.POST.get('action'))
         if new_status is None:
             return HttpResponseBadRequest('Unknown action.')
-        talk.status = new_status
-        talk.save(update_fields=['status'])
-        return redirect('talk-detail', talk_id=talk.id)
-
-    # Speakers include the talk's main speaker and any linked via Speaker.talks.
-    speakers = (
-        Speaker.objects.filter(Q(pk=talk.speaker_id) | Q(talks=talk))
-        .distinct()
-        .order_by('name')
-    )
-    return render(request, 'events/talk_detail.html', {
-        'section': 'submissions',
-        'talk': talk,
-        'speakers': speakers,
-    })
+        self.object.status = new_status
+        self.object.save(update_fields=['status'])
+        return redirect('talk-detail', talk_id=self.object.pk)

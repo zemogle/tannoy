@@ -447,7 +447,7 @@ class TalkDetailTests(TestCase):
         self.other = Speaker.objects.create(name='Not On Talk')
         self.talk = Talk.objects.create(
             title='Designing for Trust', event=self.event, speaker=self.alex,
-            summary='A practical exploration.', duration_minutes=25,
+            abstract='A practical exploration.', duration_minutes=25,
         )
         self.jamie.talks.add(self.talk)
         self.url = reverse('talk-detail', args=[self.talk.id])
@@ -611,3 +611,43 @@ class TalkDurationTests(TestCase):
             Talk.objects.create(
                 title='Bad', event=self.event, speaker=self.speaker, duration_minutes=30,
             )
+
+
+class TalkAbstractTopicTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
+        self.speaker = Speaker.objects.create(name='S')
+
+    def test_topic_choices_validated(self):
+        talk = Talk(title='T', event=self.event, speaker=self.speaker, topic='topic-ai')
+        talk.full_clean()
+        talk.topic = 'topic-cloud'
+        with self.assertRaises(ValidationError):
+            talk.full_clean()
+
+    def test_topic_and_discourse_optional(self):
+        talk = Talk.objects.create(title='T', event=self.event, speaker=self.speaker)
+        self.assertEqual(talk.topic, '')
+        self.assertIsNone(talk.discourse_id)
+        talk.full_clean()
+
+    def test_discourse_id_stores_integer(self):
+        talk = Talk.objects.create(
+            title='T', event=self.event, speaker=self.speaker, discourse_id=12345,
+        )
+        talk.refresh_from_db()
+        self.assertEqual(talk.discourse_id, 12345)
+
+    def test_detail_shows_abstract_topic_and_discourse(self):
+        talk = Talk.objects.create(
+            title='T', event=self.event, speaker=self.speaker,
+            abstract='Some abstract text.', topic='topic-security', discourse_id=77,
+        )
+        response = self.client.get(reverse('talk-detail', args=[talk.id]))
+        self.assertContains(response, 'Some abstract text.')
+        self.assertContains(response, 'Abstract')
+        self.assertContains(response, 'Topic: Security')
+        self.assertContains(response, 'Discourse ID: 77')

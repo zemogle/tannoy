@@ -25,7 +25,7 @@ from events import views as event_views
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='submissions', permanent=False)),
     path('submissions/', event_views.submissions, name='submissions'),
-    path('submissions/<int:talk_id>/', event_views.talk_detail, name='talk-detail'),
+    path('submissions/<int:talk_id>/', event_views.TalkDetailView.as_view(), name='talk-detail'),
     path('admin/', admin.site.urls),
     path('api/', include('events.urls')),
 ]

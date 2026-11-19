@@ -32,11 +32,11 @@
       <p class="u-text--muted">No speakers have been added to this talk.</p>
     {% endfor %}
 
-    <h2 class="p-heading--5">Summary</h2>
-    {% if talk.summary %}
-      <p class="u-text--muted">{{ talk.summary|linebreaksbr }}</p>
+    <h2 class="p-heading--5">Abstract</h2>
+    {% if talk.abstract %}
+      <p class="u-text--muted">{{ talk.abstract|linebreaksbr }}</p>
     {% else %}
-      <p class="u-text--muted">No summary provided.</p>
+      <p class="u-text--muted">No abstract provided.</p>
     {% endif %}
 
     {% if talk.duration_minutes %}
@@ -47,6 +47,12 @@
       {{ talk.event.name }} ({{ talk.event.date|date:"d.m.Y" }}) &middot;
       Submitted {{ talk.submitted_at|date:"d.m.Y" }}
     </p>
+    {% if talk.topic %}
+      <p class="p-text--small u-text--muted">Topic: {{ talk.get_topic_display }}</p>
+    {% endif %}
+    {% if talk.discourse_id %}
+      <p class="p-text--small u-text--muted">Discourse ID: {{ talk.discourse_id }}</p>
+    {% endif %}
   </div>
 
   <div class="col-3">

@@ -5,9 +5,9 @@ from .models import Break, Event, Programme, ProgrammeItem, Speaker, Talk
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('name', 'date')
+    list_display = ('name', 'code', 'start_date', 'end_date')
     search_fields = ('name',)
-    list_filter = ('date',)
+    list_filter = ('start_date',)
 
 
 @admin.register(Speaker)

@@ -1,6 +1,11 @@
 {% extends "events/base.html" %}
+{% load static %}
 
 {% block title %}Submissions - Tannoy{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'events/css/submissions.css' %}">
+{% endblock %}
 
 {% block content %}
   <div class="col-9">
@@ -21,45 +26,47 @@
   </div>
 
   <div class="col-9">
-    <table class="p-table--mobile-card">
-      <thead>
-        <tr>
-          <th>Talk title</th>
-          <th>Status</th>
-          <th>Submitter</th>
-          <th>Submitted date</th>
-          <th>Event</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for talk in talks %}
+    {% for section in sections %}
+      <table class="submissions-table" aria-label="{{ section.label }} submissions">
+        <thead>
           <tr>
-            <td data-column="Talk title"><a href="{% url 'talk-detail' talk.id %}"><strong>{{ talk.title }}</strong></a></td>
-            <td data-column="Status">
-              {% if talk.status == 'accepted' %}
-                <span class="p-chip--positive"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
-              {% elif talk.status == 'rejected' %}
-                <span class="p-chip--negative"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
-              {% else %}
-                <span class="p-chip--caution"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
-              {% endif %}
-            </td>
-            <td data-column="Submitter" class="u-text--muted">{{ talk.speaker.name }}</td>
-            <td data-column="Submitted date" class="u-text--muted">{{ talk.submitted_at|date:"d.m.y" }}</td>
-            <td data-column="Event" class="u-text--muted">{{ talk.event.date|date:"d.m" }}</td>
+            <th><span class="status-icon is-{{ section.key }}">{{ section.label }} ({{ section.talks|length }})</span></th>
+            <th></th>
+            <th>Speakers</th>
+            <th>Submitted date</th>
+            <th>Event</th>
           </tr>
-        {% empty %}
-          <tr>
-            <td colspan="5" class="u-text--muted">No submissions match these filters.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for talk in section.talks %}
+            <tr>
+              <td><a href="{% url 'talk-detail' talk.id %}"><strong>{{ talk.title }}</strong></a></td>
+              <td>{% include "events/_duration_icon.html" with minutes=talk.duration_minutes %}</td>
+              <td>
+                {% for speaker in talk.all_speakers %}
+                  {% if speaker.submitter %}
+                    <strong>{{ speaker.name }}</strong>
+                  {% else %}
+                    <span class="u-text--muted">{{ speaker.name }}</span>
+                  {% endif %}{% if not forloop.last %}<br>{% endif %}
+                {% endfor %}
+              </td>
+              <td class="u-text--muted">{{ talk.submitted_at|date:"d.m.y" }}</td>
+              <td class="u-text--muted">{{ talk.event.start_date|date:"d.m" }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="u-text--muted">No {{ section.label|lower }} submissions match these filters.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
   </div>
 
   <div class="col-3">
-    <form method="get" class="p-card" aria-label="Tools">
-      <h2 class="p-heading--5">TOOLS</h2>
+    <form method="get" class="p-card" aria-label="Filters">
+      <h2 class="p-heading--5">Filters</h2>
       <input type="hidden" name="q" value="{{ search }}">
 
       <div class="p-form__group">
@@ -81,7 +88,7 @@
         <select id="event-filter" name="event">
           <option value="">All events</option>
           {% for event in events %}
-            <option value="{{ event.id }}"{% if event.id|stringformat:"s" == event_id %} selected{% endif %}>{{ event.name }} ({{ event.date|date:"d.m" }})</option>
+            <option value="{{ event.id }}"{% if event.id|stringformat:"s" == event_id %} selected{% endif %}>{{ event.name }} ({{ event.start_date|date:"d.m" }})</option>
           {% endfor %}
         </select>
       </div>

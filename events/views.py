@@ -147,10 +147,18 @@ def programme_items(request, programme_id):
     return JsonResponse(_programme_payload(programme))
 
 
+def talk_speakers(talk):
+    """All speakers on a talk: the main speaker plus any linked via Speaker.talks."""
+    speakers = {talk.speaker.pk: talk.speaker}
+    for speaker in talk.speakers.all():
+        speakers.setdefault(speaker.pk, speaker)
+    return sorted(speakers.values(), key=lambda speaker: speaker.name)
+
+
 @staff_member_required
 def submissions(request):
     """Review list of talk submissions with filters and status counts."""
-    talks = Talk.objects.select_related('event', 'speaker')
+    talks = Talk.objects.select_related('event', 'speaker').prefetch_related('speakers')
 
     search = request.GET.get('q', '').strip()
     title = request.GET.get('title', '').strip()
@@ -170,6 +178,13 @@ def submissions(request):
     if event_id.isdigit():
         talks = talks.filter(event_id=int(event_id))
 
+    # Counts reflect the filtered set, so they update with the filters.
+    counts = talks.aggregate(
+        accepted=Count('id', filter=Q(status=Status.ACCEPTED)),
+        pending=Count('id', filter=Q(status=Status.PENDING)),
+        rejected=Count('id', filter=Q(status=Status.REJECTED)),
+    )
+
     talks = talks.order_by('-submitted_at')
 
     if request.GET.get('export') == 'csv':
@@ -183,20 +198,33 @@ def submissions(request):
                 talk.get_status_display(),
                 talk.speaker.name,
                 talk.submitted_at.strftime('%d.%m.%y'),
-                talk.event.date.strftime('%d.%m'),
+                talk.event.start_date.strftime('%d.%m'),
             ])
         return response
 
-    counts = Talk.objects.aggregate(
-        accepted=Count('id', filter=Q(status=Status.ACCEPTED)),
-        pending=Count('id', filter=Q(status=Status.PENDING)),
-        rejected=Count('id', filter=Q(status=Status.REJECTED)),
-    )
+    talks = list(talks)
+    for talk in talks:
+        talk.all_speakers = talk_speakers(talk)
+
+    # One section per status, in review order: pending, accepted, rejected.
+    sections = [
+        {
+            'key': status_value,
+            'label': status_label,
+            'talks': [talk for talk in talks if talk.status == status_value],
+        }
+        for status_value, status_label in (
+            (Status.PENDING, 'Pending'),
+            (Status.ACCEPTED, 'Accepted'),
+            (Status.REJECTED, 'Rejected'),
+        )
+    ]
 
     return render(request, 'events/submissions.html', {
         'section': 'submissions',
         'talks': talks,
-        'events': Event.objects.order_by('date'),
+        'sections': sections,
+        'events': Event.objects.order_by('start_date'),
         'statuses': Status.choices,
         'counts': counts,
         'search': search,
@@ -210,7 +238,8 @@ def submissions(request):
 class TalkDetailView(DetailView):
     """
     GET: show a talk with its speakers, abstract and current status.
-    POST (action=accept|reject): set the talk's status, then redirect back.
+    POST (action=accept|reject|publish): apply an editorial action that is
+    allowed for the talk's current state, then redirect back.
     """
 
     model = Talk
@@ -236,13 +265,21 @@ class TalkDetailView(DetailView):
             .order_by('name')
         )
         context['section'] = 'submissions'
+        context['allowed_actions'] = self.object.allowed_actions()
         return context
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        new_status = self.ACTIONS.get(request.POST.get('action'))
-        if new_status is None:
+        action = request.POST.get('action')
+        if action not in self.ACTIONS and action != 'publish':
             return HttpResponseBadRequest('Unknown action.')
-        self.object.status = new_status
-        self.object.save(update_fields=['status'])
+        if action not in self.object.allowed_actions():
+            return HttpResponseBadRequest('Action not allowed for this talk.')
+
+        if action == 'publish':
+            self.object.published = True
+            self.object.save(update_fields=['published'])
+        else:
+            self.object.status = self.ACTIONS[action]
+            self.object.save(update_fields=['status'])
         return redirect('talk-detail', talk_id=self.object.pk)

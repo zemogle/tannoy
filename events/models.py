@@ -9,6 +9,7 @@ class Status(models.TextChoices):
     PENDING = 'pending', 'Pending'
     ACCEPTED = 'accepted', 'Accepted'
     REJECTED = 'rejected', 'Rejected'
+    PUBLISHED = 'published', 'Published'
 
 class Topic(models.TextChoices):
     DEVICES = 'topic-devices', 'Devices'
@@ -30,6 +31,14 @@ class Speaker(models.Model):
         blank=True,
     )
     requests_sponsorship = models.BooleanField('requests sponsorship', default=False)
+    email = models.EmailField(blank=True)
+    pronouns = models.CharField(max_length=50, blank=True)
+    username = models.CharField(max_length=150, blank=True)
+    bio = models.TextField(blank=True)
+    unconference = models.BooleanField(default=False)
+    unconference_idea = models.TextField(blank=True)
+    in_person = models.BooleanField(default=True)
+    submitter = models.BooleanField(default=False)
     talks = models.ManyToManyField('Talk', related_name='speakers', blank=True)
 
     def __str__(self):
@@ -38,10 +47,21 @@ class Speaker(models.Model):
 
 class Event(models.Model):
     name = models.CharField(max_length=200)
-    date = models.DateField()
+    code = models.CharField(max_length=5)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    def clean(self):
+        super().clean()
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError({'end_date': 'End date cannot be before start date.'})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f'{self.name} ({self.date})'
+        return f'{self.name} ({self.start_date})'
 
 
 class Talk(models.Model):
@@ -83,6 +103,7 @@ class Talk(models.Model):
         null=True,
         blank=True,
     )
+    published = models.BooleanField(default=False)
 
     class Meta:
         constraints = [  # noqa: RUF012
@@ -92,6 +113,24 @@ class Talk(models.Model):
                 name='talk_duration_is_valid_choice',
             ),
         ]
+
+    def allowed_actions(self):
+        """
+        Editorial actions available for the talk's current state.
+
+        Pending: accept, reject. Accepted: reject, publish.
+        Rejected: accept. Published: none (the talk is locked).
+        """
+        if self.published:
+            return set()
+        actions = set()
+        if self.status != Status.ACCEPTED:
+            actions.add('accept')
+        if self.status != Status.REJECTED:
+            actions.add('reject')
+        if self.status == Status.ACCEPTED:
+            actions.add('publish')
+        return actions
 
     def __str__(self):
         return self.title

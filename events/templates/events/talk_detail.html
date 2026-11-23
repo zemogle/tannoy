@@ -2,13 +2,45 @@
 
 {% block title %}{{ talk.title }} - Tannoy{% endblock %}
 
+{% block extra_head %}
+  <style>
+    .talk-toolbar .p-button,
+    .talk-toolbar .p-button--positive,
+    .talk-toolbar .p-button--negative,
+    .talk-toolbar .p-button--brand {
+      margin-bottom: 0;
+    }
+    .talk-toolbar button + button {
+      margin-left: 0.5rem;
+    }
+  </style>
+{% endblock %}
+
 {% block content %}
+
   <div class="col-9">
     <p class="p-text--small u-text--muted">
       <a href="{% url 'submissions' %}">Submissions</a> / Talk detail
     </p>
+    {% if request.user.is_staff %}
+    <form method="post" action="{% url 'talk-detail' talk.id %}" class="talk-toolbar">
+      {% csrf_token %}
+      <button type="submit" name="action" value="accept" class="p-button--positive"{% if 'accept' not in allowed_actions %} disabled{% endif %}>Accept</button>
+      <button type="submit" name="action" value="reject" class="p-button--negative"{% if 'reject' not in allowed_actions %} disabled{% endif %}>Reject</button>
+      <button type="submit" name="action" value="publish" class="p-button--brand"{% if 'publish' not in allowed_actions %} disabled{% endif %}>Publish</button>
+    </form>
+    {% endif %}
     <h1 class="p-heading--2">{{ talk.title }}</h1>
-
+    {% if talk.status == 'accepted' %}
+      <span class="p-chip--positive"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
+    {% elif talk.status == 'rejected' %}
+      <span class="p-chip--negative"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
+    {% else %}
+      <span class="p-chip--caution"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
+    {% endif %}
+    {% if talk.published %}
+      <span class="p-chip--information"><span class="p-chip__value">Published</span></span>
+    {% endif %}
     <h2 class="p-heading--5">Speakers</h2>
     {% for speaker in speakers %}
       <div class="row u-vertically-center">
@@ -40,11 +72,18 @@
     {% endif %}
 
     {% if talk.duration_minutes %}
-      <p class="p-heading--5">{{ talk.duration_minutes }} mins</p>
+      <p>
+        <span class="p-chip">
+          <span class="p-chip__value">
+            {% include "events/_duration_icon.html" with minutes=talk.duration_minutes %}
+            {{ talk.duration_minutes }} mins
+          </span>
+        </span>
+      </p>
     {% endif %}
 
     <p class="p-text--small u-text--muted">
-      {{ talk.event.name }} ({{ talk.event.date|date:"d.m.Y" }}) &middot;
+      {{ talk.event.name }} ({{ talk.event.start_date|date:"d.m.Y" }} &ndash; {{ talk.event.end_date|date:"d.m.Y" }}) &middot;
       Submitted {{ talk.submitted_at|date:"d.m.Y" }}
     </p>
     {% if talk.topic %}
@@ -53,31 +92,5 @@
     {% if talk.discourse_id %}
       <p class="p-text--small u-text--muted">Discourse ID: {{ talk.discourse_id }}</p>
     {% endif %}
-  </div>
-
-  <div class="col-3">
-    <div class="p-card">
-      <h2 class="p-heading--5">Current status</h2>
-      {% if talk.status == 'accepted' %}
-        <p><span class="p-chip--positive"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
-      {% elif talk.status == 'rejected' %}
-        <p><span class="p-chip--negative"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
-      {% else %}
-        <p><span class="p-chip--caution"><span class="p-chip__value">{{ talk.get_status_display }}</span></span></p>
-      {% endif %}
-
-      <h2 class="p-heading--5">Tools</h2>
-      {% if request.user.is_staff %}
-        <form method="post" action="{% url 'talk-detail' talk.id %}">
-          {% csrf_token %}
-          <button type="submit" name="action" value="accept" class="p-button--positive is-small u-no-margin--bottom" style="width:100%">Accept</button>
-        </form>
-        <form method="post" action="{% url 'talk-detail' talk.id %}">
-          {% csrf_token %}
-          <button type="submit" name="action" value="reject" class="p-button--negative is-small" style="width:100%">Reject</button>
-        </form>
-      {% endif %}
-      <button type="button" class="p-button--brand is-small" style="width:100%" disabled title="Publishing is not defined yet">Publish</button>
-    </div>
   </div>
 {% endblock %}

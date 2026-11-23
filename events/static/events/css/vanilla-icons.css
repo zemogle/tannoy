@@ -1,0 +1,30 @@
+/* Vanilla framework icons (priority-critical, priority-low), light theme.
+   Source: canonical/vanilla-framework scss/_base_icon-definitions.scss */
+
+.p-icon--priority-critical {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  padding: 0;
+  vertical-align: -0.125rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M0 0h16v16H0z'/%3E%3Cpath fill='%23000'  fill-rule='nonzero' d='M8 5.5a7.97 7.97 0 015.315 2.02L8 13.5 2.685 7.52A7.97 7.97 0 018 5.5zm0-3c2.82 0 5.414.973 7.462 2.602l-.998 1.123A10.455 10.455 0 008 4c-2.44 0-4.685.832-6.467 2.227L.535 5.104A11.95 11.95 0 018 2.5z'/%3E%3C/g%3E%3C/svg%3E");
+  text-indent: -9999px;
+  overflow: hidden;
+}
+
+.p-icon--priority-low {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  padding: 0;
+  vertical-align: -0.125rem;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M0 0h16v16H0z'/%3E%3Cpath fill='%23000'  fill-rule='nonzero' d='M5.935 5.77l2.07 7.723L8 13.5 2.684 7.521a7.983 7.983 0 013.25-1.752zM8 2.5c2.82 0 5.414.973 7.462 2.602l-.998 1.123A10.455 10.455 0 008 4c-2.44 0-4.685.832-6.467 2.227L.535 5.104A11.95 11.95 0 018 2.5z'/%3E%3C/g%3E%3C/svg%3E");
+  text-indent: -9999px;
+  overflow: hidden;
+}

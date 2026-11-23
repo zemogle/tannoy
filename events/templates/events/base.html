@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Tannoy{% endblock %}</title>
   <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-4.20.0.min.css">
+  <link rel="stylesheet" href="{% static 'events/css/vanilla-icons.css' %}">
   <style>
+    .duration-icon {
+      width: 1rem;
+      height: 1rem;
+      vertical-align: -0.125rem;
+    }
+    .tannoy-logo {
+      height: 1.5rem;
+      width: auto;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      filter: invert(1);
+    }
     .speaker-headshot {
       width: 3rem;
       height: 3rem;
@@ -16,35 +30,76 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <header class="p-navigation is-dark">
-    <div class="p-navigation__banner">
-      <div class="p-navigation__tagged-logo">
-        <a class="p-navigation__link" href="{% url 'submissions' %}">
-          <span class="p-navigation__logo-title">Tannoy</span>
-        </a>
+  <div class="l-application" role="presentation">
+    <div class="l-navigation-bar">
+      <div class="p-panel is-dark">
+        <div class="p-panel__header">
+          <a class="p-panel__logo" href="{% url 'submissions' %}" aria-label="Tannoy home">
+            <img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt="">
+          </a>
+          <p class="p-panel__title u-no-margin--bottom">Tannoy</p>
+          <div class="p-panel__controls">
+            <button type="button" class="p-panel__toggle js-menu-toggle" aria-controls="site-navigation" aria-expanded="false">Menu</button>
+          </div>
+        </div>
       </div>
     </div>
-    <nav class="p-navigation__nav" aria-label="Main navigation">
-      <ul class="p-navigation__items">
-        <li class="p-navigation__item">
-          <a class="p-navigation__link" href="{% url 'submissions' %}"{% if section == 'submissions' %} aria-current="page"{% endif %}>Submissions</a>
-        </li>
-        <li class="p-navigation__item">
-          <a class="p-navigation__link" href="{% url 'admin:events_event_changelist' %}"{% if section == 'events' %} aria-current="page"{% endif %}>Events</a>
-        </li>
-      </ul>
-      <ul class="p-navigation__items u-align--right">
-        <li class="p-navigation__item">
-          <a class="p-navigation__link" href="{% url 'admin:index' %}">My account</a>
-        </li>
-      </ul>
-    </nav>
-  </header>
 
-  <main class="p-strip--light">
-    <div class="row">
-      {% block content %}{% endblock %}
-    </div>
-  </main>
+    <header class="l-navigation is-collapsed" id="site-navigation">
+      <div class="l-navigation__drawer">
+        <div class="p-panel is-dark">
+          <div class="p-panel__header">
+            <a class="p-panel__logo" href="{% url 'submissions' %}" aria-label="Tannoy home">
+              <img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt="">
+            </a>
+            <p class="p-panel__title u-no-margin--bottom">Tannoy</p>
+          </div>
+          <div class="p-panel__content">
+            <nav aria-label="Main navigation">
+              <ul class="p-side-navigation__list">
+                <li class="p-side-navigation__item">
+                  <a class="p-side-navigation__link" href="{% url 'submissions' %}"{% if section == 'submissions' %} aria-current="page"{% endif %}>
+                    <span class="p-side-navigation__label">Submissions</span>
+                  </a>
+                </li>
+                <li class="p-side-navigation__item">
+                  <a class="p-side-navigation__link" href="{% url 'admin:events_event_changelist' %}"{% if section == 'events' %} aria-current="page"{% endif %}>
+                    <span class="p-side-navigation__label">Events</span>
+                  </a>
+                </li>
+                <li class="p-side-navigation__item">
+                  <a class="p-side-navigation__link" href="{% url 'admin:index' %}">
+                    <span class="p-side-navigation__label">My account</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="l-main">
+      <div class="u-fixed-width">
+        <div class="row">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      var toggle = document.querySelector('.js-menu-toggle');
+      var navigation = document.querySelector('.l-navigation');
+      if (!toggle || !navigation) {
+        return;
+      }
+      toggle.addEventListener('click', function () {
+        var collapsed = navigation.classList.toggle('is-collapsed');
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+      });
+    })();
+  </script>
 </body>
 </html>

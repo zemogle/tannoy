@@ -1,0 +1,414 @@
+[
+  {
+    "pk": 1,
+    "model": "events.event",
+    "fields": {
+      "name": "Ubuntu Summit 27.04",
+      "code": "27.04",
+      "start_date": "2027-04-27",
+      "end_date": "2027-04-28"
+    }
+  },
+  {
+    "pk": 2,
+    "model": "events.event",
+    "fields": {
+      "name": "Ubuntu Summit 27.10",
+      "code": "27.10",
+      "start_date": "2027-10-26",
+      "end_date": "2027-10-27"
+    }
+  },
+  {
+    "pk": 1,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Alex Morgan",
+      "affiliation": "Canonical",
+      "email": "alex.morgan@example.com",
+      "pronouns": "he/him",
+      "username": "alexmorgan",
+      "bio": "Placeholder bio for Alex Morgan.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        1
+      ]
+    }
+  },
+  {
+    "pk": 2,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Jamie Lee",
+      "affiliation": "Example Corp",
+      "email": "jamie.lee@example.com",
+      "pronouns": "they/them",
+      "username": "jamielee",
+      "bio": "Placeholder bio for Jamie Lee.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        2
+      ]
+    }
+  },
+  {
+    "pk": 3,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Samira Khan",
+      "affiliation": "Open Labs",
+      "email": "samira.khan@example.com",
+      "pronouns": "she/her",
+      "username": "samirakhan",
+      "bio": "Placeholder bio for Samira Khan.",
+      "requests_sponsorship": false,
+      "unconference": true,
+      "unconference_idea": "Placeholder unconference idea.",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        3
+      ]
+    }
+  },
+  {
+    "pk": 4,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Chris Patel",
+      "affiliation": "Canonical",
+      "email": "chris.patel@example.com",
+      "pronouns": "he/him",
+      "username": "chrispatel",
+      "bio": "Placeholder bio for Chris Patel.",
+      "requests_sponsorship": true,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        4
+      ]
+    }
+  },
+  {
+    "pk": 5,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Taylor Smith",
+      "affiliation": "Northwind",
+      "email": "taylor.smith@example.com",
+      "pronouns": "they/them",
+      "username": "taylorsmith",
+      "bio": "Placeholder bio for Taylor Smith.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": false,
+      "submitter": true,
+      "talks": [
+        5
+      ]
+    }
+  },
+  {
+    "pk": 6,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Priya Natarajan",
+      "affiliation": "Acme Research",
+      "email": "priya.natarajan@example.com",
+      "pronouns": "she/her",
+      "username": "priyanatarajan",
+      "bio": "Placeholder bio for Priya Natarajan.",
+      "requests_sponsorship": false,
+      "unconference": true,
+      "unconference_idea": "Placeholder unconference idea.",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        6
+      ]
+    }
+  },
+  {
+    "pk": 7,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Miguel Alvarez",
+      "affiliation": "Canonical",
+      "email": "miguel.alvarez@example.com",
+      "pronouns": "he/him",
+      "username": "miguelalvarez",
+      "bio": "Placeholder bio for Miguel Alvarez.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        7
+      ]
+    }
+  },
+  {
+    "pk": 8,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Olu Adeyemi",
+      "affiliation": "Bright Systems",
+      "email": "olu.adeyemi@example.com",
+      "pronouns": "they/them",
+      "username": "oluadeyemi",
+      "bio": "Placeholder bio for Olu Adeyemi.",
+      "requests_sponsorship": true,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        8
+      ]
+    }
+  },
+  {
+    "pk": 9,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Hannah Berg",
+      "affiliation": "Open Labs",
+      "email": "hannah.berg@example.com",
+      "pronouns": "she/her",
+      "username": "hannahberg",
+      "bio": "Placeholder bio for Hannah Berg.",
+      "requests_sponsorship": false,
+      "unconference": true,
+      "unconference_idea": "Placeholder unconference idea.",
+      "in_person": true,
+      "submitter": true,
+      "talks": [
+        9
+      ]
+    }
+  },
+  {
+    "pk": 10,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Kenji Sato",
+      "affiliation": "Canonical",
+      "email": "kenji.sato@example.com",
+      "pronouns": "he/him",
+      "username": "kenjisato",
+      "bio": "Placeholder bio for Kenji Sato.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": false,
+      "submitter": true,
+      "talks": [
+        10
+      ]
+    }
+  },
+  {
+    "pk": 11,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Fatima Rahman",
+      "affiliation": "Independent",
+      "email": "fatima.rahman@example.com",
+      "pronouns": "they/them",
+      "username": "fatimarahman",
+      "bio": "Placeholder bio for Fatima Rahman.",
+      "requests_sponsorship": false,
+      "unconference": false,
+      "unconference_idea": "",
+      "in_person": true,
+      "submitter": false,
+      "talks": [
+        2,
+        5
+      ]
+    }
+  },
+  {
+    "pk": 12,
+    "model": "events.speaker",
+    "fields": {
+      "name": "Ben Carter",
+      "affiliation": "Northwind",
+      "email": "ben.carter@example.com",
+      "pronouns": "she/her",
+      "username": "bencarter",
+      "bio": "Placeholder bio for Ben Carter.",
+      "requests_sponsorship": true,
+      "unconference": true,
+      "unconference_idea": "Placeholder unconference idea.",
+      "in_person": true,
+      "submitter": false,
+      "talks": [
+        5,
+        8
+      ]
+    }
+  },
+  {
+    "pk": 1,
+    "model": "events.talk",
+    "fields": {
+      "title": "Designing for Trust",
+      "event": 1,
+      "speaker": 1,
+      "status": "accepted",
+      "submitted_at": "2026-09-01T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Designing for Trust\".",
+      "topic": "topic-devices",
+      "discourse_id": 1001,
+      "duration_minutes": 5
+    }
+  },
+  {
+    "pk": 2,
+    "model": "events.talk",
+    "fields": {
+      "title": "Open Source at Scale",
+      "event": 1,
+      "speaker": 2,
+      "status": "pending",
+      "submitted_at": "2026-09-02T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Open Source at Scale\".",
+      "topic": "topic-security",
+      "discourse_id": 1002,
+      "duration_minutes": 25
+    }
+  },
+  {
+    "pk": 3,
+    "model": "events.talk",
+    "fields": {
+      "title": "The Future of Teams",
+      "event": 1,
+      "speaker": 3,
+      "status": "rejected",
+      "submitted_at": "2026-09-03T09:00:00Z",
+      "abstract": "Placeholder abstract for \"The Future of Teams\".",
+      "topic": "topic-dev",
+      "discourse_id": 1003,
+      "duration_minutes": 45
+    }
+  },
+  {
+    "pk": 4,
+    "model": "events.talk",
+    "fields": {
+      "title": "Making Data Human",
+      "event": 1,
+      "speaker": 4,
+      "status": "accepted",
+      "submitted_at": "2026-09-04T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Making Data Human\".",
+      "topic": "topic-ai",
+      "discourse_id": 1004,
+      "duration_minutes": 5
+    }
+  },
+  {
+    "pk": 5,
+    "model": "events.talk",
+    "fields": {
+      "title": "Beyond the Roadmap",
+      "event": 1,
+      "speaker": 5,
+      "status": "pending",
+      "submitted_at": "2026-09-05T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Beyond the Roadmap\".",
+      "topic": "topic-devices",
+      "discourse_id": 1005,
+      "duration_minutes": 25
+    }
+  },
+  {
+    "pk": 6,
+    "model": "events.talk",
+    "fields": {
+      "title": "Secure by Default in Practice",
+      "event": 2,
+      "speaker": 6,
+      "status": "rejected",
+      "submitted_at": "2026-09-06T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Secure by Default in Practice\".",
+      "topic": "topic-security",
+      "discourse_id": 1006,
+      "duration_minutes": 45
+    }
+  },
+  {
+    "pk": 7,
+    "model": "events.talk",
+    "fields": {
+      "title": "Local AI for Everyone",
+      "event": 2,
+      "speaker": 7,
+      "status": "accepted",
+      "submitted_at": "2026-09-07T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Local AI for Everyone\".",
+      "topic": "topic-dev",
+      "discourse_id": 1007,
+      "duration_minutes": 5
+    }
+  },
+  {
+    "pk": 8,
+    "model": "events.talk",
+    "fields": {
+      "title": "Building Community Hardware",
+      "event": 2,
+      "speaker": 8,
+      "status": "pending",
+      "submitted_at": "2026-09-08T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Building Community Hardware\".",
+      "topic": "topic-ai",
+      "discourse_id": 1008,
+      "duration_minutes": 25
+    }
+  },
+  {
+    "pk": 9,
+    "model": "events.talk",
+    "fields": {
+      "title": "Reproducible Builds Revisited",
+      "event": 2,
+      "speaker": 9,
+      "status": "rejected",
+      "submitted_at": "2026-09-09T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Reproducible Builds Revisited\".",
+      "topic": "topic-devices",
+      "discourse_id": 1009,
+      "duration_minutes": 45
+    }
+  },
+  {
+    "pk": 10,
+    "model": "events.talk",
+    "fields": {
+      "title": "Developer Experience Roundtable",
+      "event": 2,
+      "speaker": 10,
+      "status": "accepted",
+      "submitted_at": "2026-09-10T09:00:00Z",
+      "abstract": "Placeholder abstract for \"Developer Experience Roundtable\".",
+      "topic": "topic-security",
+      "discourse_id": 1010,
+      "duration_minutes": 5
+    }
+  }
+]

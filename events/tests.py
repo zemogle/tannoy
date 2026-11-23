@@ -1,9 +1,11 @@
 import datetime
 import json
+import re
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
@@ -20,8 +22,8 @@ def dt(hour, minute=0):
 
 class ProgrammeDayTests(TestCase):
     def setUp(self):
-        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
-        self.other_event = Event.objects.create(name='O', date=datetime.date(2026, 1, 2))
+        self.event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        self.other_event = Event.objects.create(name='O', code='TST', start_date=datetime.date(2026, 1, 2), end_date=datetime.date(2026, 1, 2))
 
     def test_event_can_have_multiple_programmes_on_different_days(self):
         Programme.objects.create(name='Day 1', event=self.event, day=1)
@@ -47,7 +49,7 @@ class ProgrammeDayTests(TestCase):
 
 class BreakModelTests(TestCase):
     def setUp(self):
-        event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
+        event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
         self.programme = Programme.objects.create(name='P', event=event, day=1)
 
     def test_end_must_be_after_start(self):
@@ -66,8 +68,8 @@ class BreakModelTests(TestCase):
 
 class ProgrammeItemModelTests(TestCase):
     def setUp(self):
-        self.e1 = Event.objects.create(name='A', date=datetime.date(2026, 1, 1))
-        self.e2 = Event.objects.create(name='B', date=datetime.date(2026, 1, 2))
+        self.e1 = Event.objects.create(name='A', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        self.e2 = Event.objects.create(name='B', code='TST', start_date=datetime.date(2026, 1, 2), end_date=datetime.date(2026, 1, 2))
         speaker = Speaker.objects.create(name='S')
         self.t1 = Talk.objects.create(title='T1', event=self.e1, speaker=speaker)
         self.t2 = Talk.objects.create(title='T2', event=self.e2, speaker=speaker)
@@ -109,8 +111,8 @@ class ProgrammeItemsApiTests(TestCase):
         self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
         self.user = User.objects.create_user('user', password='pw')
 
-        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
-        self.other_event = Event.objects.create(name='O', date=datetime.date(2026, 1, 2))
+        self.event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        self.other_event = Event.objects.create(name='O', code='TST', start_date=datetime.date(2026, 1, 2), end_date=datetime.date(2026, 1, 2))
         speaker = Speaker.objects.create(name='S')
         self.t1 = Talk.objects.create(title='T1', event=self.event, speaker=speaker)
         self.t2 = Talk.objects.create(title='T2', event=self.event, speaker=speaker)
@@ -252,7 +254,7 @@ class AdminTests(TestCase):
         self.admin_user = User.objects.create_superuser('admin', 'a@example.com', 'pw')
         self.client.force_login(self.admin_user)
 
-        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
+        self.event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
         self.speaker = Speaker.objects.create(name='S')
         self.talk = Talk.objects.create(title='T', event=self.event, speaker=self.speaker)
         self.programme = Programme.objects.create(name='P', event=self.event, day=1)
@@ -363,8 +365,8 @@ class SubmissionsPageTests(TestCase):
         self.user = User.objects.create_user('user', password='pw')
         self.url = reverse('submissions')
 
-        self.oct = Event.objects.create(name='Summit Oct', date=datetime.date(2026, 10, 26))
-        self.apr = Event.objects.create(name='Summit Apr', date=datetime.date(2026, 4, 27))
+        self.oct = Event.objects.create(name='Summit Oct', code='TST', start_date=datetime.date(2026, 10, 26), end_date=datetime.date(2026, 10, 26))
+        self.apr = Event.objects.create(name='Summit Apr', code='TST', start_date=datetime.date(2026, 4, 27), end_date=datetime.date(2026, 4, 27))
         alex = Speaker.objects.create(name='Alex Morgan')
         jamie = Speaker.objects.create(name='Jamie Lee')
         Talk.objects.create(
@@ -400,8 +402,8 @@ class SubmissionsPageTests(TestCase):
         self.assertContains(response, 'Open Source at Scale')
         self.assertContains(response, 'Alex Morgan')
         self.assertContains(response, dt(9).strftime('%d.%m.%y'))
-        self.assertContains(response, 'p-chip--positive')
-        self.assertContains(response, 'p-chip--negative')
+        self.assertContains(response, 'status-icon is-accepted')
+        self.assertContains(response, 'status-icon is-rejected')
 
     def test_quick_status_counts(self):
         response = self.client.get(self.url)
@@ -441,7 +443,7 @@ class TalkDetailTests(TestCase):
     def setUp(self):
         User = get_user_model()
         self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
-        self.event = Event.objects.create(name='Summit', date=datetime.date(2026, 10, 26))
+        self.event = Event.objects.create(name='Summit', code='TST', start_date=datetime.date(2026, 10, 26), end_date=datetime.date(2026, 10, 26))
         self.alex = Speaker.objects.create(name='Alex Morgan')
         self.jamie = Speaker.objects.create(name='Jamie Lee')
         self.other = Speaker.objects.create(name='Not On Talk')
@@ -501,7 +503,7 @@ class SpeakerProfileTests(TestCase):
         User = get_user_model()
         self.staff = User.objects.create_superuser('admin', 'a@example.com', 'pw')
         self.client.force_login(self.staff)
-        self.event = Event.objects.create(name='Summit', date=datetime.date(2026, 10, 26))
+        self.event = Event.objects.create(name='Summit', code='TST', start_date=datetime.date(2026, 10, 26), end_date=datetime.date(2026, 10, 26))
         self.speaker = Speaker.objects.create(
             name='Alex Morgan', affiliation='Canonical', requests_sponsorship=True,
             headshot='speakers/alex.png',
@@ -584,7 +586,7 @@ class HeadshotStorageTests(TestCase):
 
 class TalkDurationTests(TestCase):
     def setUp(self):
-        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
+        self.event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
         self.speaker = Speaker.objects.create(name='S')
 
     def test_allowed_durations_save(self):
@@ -618,7 +620,7 @@ class TalkAbstractTopicTests(TestCase):
         User = get_user_model()
         self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
         self.client.force_login(self.staff)
-        self.event = Event.objects.create(name='E', date=datetime.date(2026, 1, 1))
+        self.event = Event.objects.create(name='E', code='TST', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
         self.speaker = Speaker.objects.create(name='S')
 
     def test_topic_choices_validated(self):
@@ -651,3 +653,405 @@ class TalkAbstractTopicTests(TestCase):
         self.assertContains(response, 'Abstract')
         self.assertContains(response, 'Topic: Security')
         self.assertContains(response, 'Discourse ID: 77')
+
+
+class SpeakerProfileExtraFieldsTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin_user = User.objects.create_superuser('admin', 'a@example.com', 'pw')
+        self.client.force_login(self.admin_user)
+
+    def test_defaults(self):
+        speaker = Speaker.objects.create(name='Plain')
+        self.assertEqual(speaker.email, '')
+        self.assertEqual(speaker.pronouns, '')
+        self.assertEqual(speaker.username, '')
+        self.assertEqual(speaker.bio, '')
+        self.assertFalse(speaker.unconference)
+        self.assertEqual(speaker.unconference_idea, '')
+        self.assertTrue(speaker.in_person)
+
+    def test_fields_saved(self):
+        speaker = Speaker.objects.create(
+            name='Alex', email='alex@example.com', pronouns='they/them',
+            username='alexm', bio='Bio text', unconference=True,
+            unconference_idea='Open hardware', in_person=True,
+        )
+        speaker.refresh_from_db()
+        self.assertEqual(speaker.email, 'alex@example.com')
+        self.assertEqual(speaker.pronouns, 'they/them')
+        self.assertEqual(speaker.username, 'alexm')
+        self.assertEqual(speaker.bio, 'Bio text')
+        self.assertTrue(speaker.unconference)
+        self.assertEqual(speaker.unconference_idea, 'Open hardware')
+        self.assertTrue(speaker.in_person)
+
+    def test_invalid_email_rejected(self):
+        speaker = Speaker(name='Bad', email='not-an-email')
+        with self.assertRaises(ValidationError):
+            speaker.full_clean()
+
+    def test_admin_form_accepts_new_fields(self):
+        response = self.client.post(reverse('admin:events_speaker_add'), {
+            'name': 'Sam',
+            'affiliation': '',
+            'email': 'sam@example.com',
+            'pronouns': 'she/her',
+            'username': 'sam',
+            'bio': 'Hello',
+            'unconference': 'on',
+            'unconference_idea': 'Retro games',
+            'in_person': 'on',
+            'talks': [],
+        })
+        self.assertEqual(response.status_code, 302)
+        sam = Speaker.objects.get(name='Sam')
+        self.assertEqual(sam.pronouns, 'she/her')
+        self.assertTrue(sam.unconference)
+        self.assertTrue(sam.in_person)
+        self.assertEqual(sam.unconference_idea, 'Retro games')
+
+
+class EventDatesTests(TestCase):
+    def test_end_before_start_rejected(self):
+        with self.assertRaises(ValidationError):
+            Event.objects.create(
+                name='Bad', code='BAD',
+                start_date=datetime.date(2026, 10, 27),
+                end_date=datetime.date(2026, 10, 26),
+            )
+
+    def test_multi_day_event_saves(self):
+        event = Event.objects.create(
+            name='Summit', code='SUM26',
+            start_date=datetime.date(2026, 10, 26),
+            end_date=datetime.date(2026, 10, 28),
+        )
+        event.refresh_from_db()
+        self.assertEqual(event.end_date, datetime.date(2026, 10, 28))
+        self.assertEqual(event.code, 'SUM26')
+
+
+class SpeakerSubmitterTests(TestCase):
+    def test_submitter_defaults_to_false(self):
+        self.assertFalse(Speaker.objects.create(name='New').submitter)
+
+    def test_submitter_can_be_set(self):
+        speaker = Speaker.objects.create(name='Sub', submitter=True)
+        speaker.refresh_from_db()
+        self.assertTrue(speaker.submitter)
+
+
+class PlaceholderFixtureTests(TestCase):
+    fixtures = ['placeholder_data']
+
+    def test_counts(self):
+        self.assertEqual(Event.objects.count(), 2)
+        self.assertEqual(Talk.objects.count(), 10)
+        self.assertEqual(Speaker.objects.count(), 12)
+        self.assertEqual(
+            sorted(Event.objects.values_list('code', flat=True)), ['27.04', '27.10']
+        )
+
+    def test_every_talk_has_exactly_one_submitter(self):
+        for talk in Talk.objects.all():
+            with self.subTest(talk=talk.title):
+                linked = Speaker.objects.filter(Q(talks=talk) | Q(pk=talk.speaker_id)).distinct()
+                self.assertEqual(linked.filter(submitter=True).count(), 1)
+
+    def test_some_talks_have_multiple_speakers(self):
+        multi = [
+            talk for talk in Talk.objects.all()
+            if Speaker.objects.filter(Q(talks=talk) | Q(pk=talk.speaker_id)).distinct().count() > 1
+        ]
+        self.assertGreater(len(multi), 0)
+
+
+class SubmissionsSpeakersAndFiltersTests(TestCase):
+    fixtures = ['placeholder_data']
+
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+        self.url = reverse('submissions')
+
+    def test_panel_is_titled_filters(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'Filters')
+        self.assertNotContains(response, 'TOOLS')
+
+    def test_table_lists_all_speakers_and_highlights_submitter(self):
+        response = self.client.get(self.url)
+        talk = next(t for t in response.context['talks'] if t.pk == 5)
+        names = [s.name for s in talk.all_speakers]
+        self.assertEqual(len(names), 3)
+        self.assertEqual(
+            [s.submitter for s in talk.all_speakers].count(True), 1
+        )
+        self.assertContains(response, 'Fatima Rahman')
+        self.assertContains(response, '<strong>Taylor Smith</strong>')
+
+    def test_quick_status_counts_follow_filters(self):
+        total = self.client.get(self.url).context['counts']
+        self.assertEqual(sum(total.values()), 10)
+
+        response = self.client.get(self.url, {'event': str(Event.objects.get(code='27.04').pk)})
+        filtered = response.context['counts']
+        self.assertEqual(filtered['accepted'] + filtered['pending'] + filtered['rejected'], 5)
+        self.assertEqual(
+            filtered,
+            {
+                'accepted': sum(1 for t in response.context['talks'] if t.status == 'accepted'),
+                'pending': sum(1 for t in response.context['talks'] if t.status == 'pending'),
+                'rejected': sum(1 for t in response.context['talks'] if t.status == 'rejected'),
+            },
+        )
+
+    def test_status_filter_updates_counts(self):
+        response = self.client.get(self.url, {'status': 'accepted'})
+        counts = response.context['counts']
+        self.assertGreater(counts['accepted'], 0)
+        self.assertEqual(counts['pending'], 0)
+        self.assertEqual(counts['rejected'], 0)
+        self.assertEqual(counts['accepted'], len(response.context['talks']))
+
+
+class NavBullhornTests(TestCase):
+    def test_bullhorn_icon_in_nav_on_pages(self):
+        User = get_user_model()
+        staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(staff)
+        event = Event.objects.create(name='E', code='E', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        speaker = Speaker.objects.create(name='S')
+        talk = Talk.objects.create(title='T', event=event, speaker=speaker)
+        for url in (reverse('submissions'), reverse('talk-detail', args=[talk.id])):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, 'events/img/bullhorn.svg')
+                self.assertContains(response, 'class="tannoy-logo"')
+
+
+class TalkTypeIconTests(TestCase):
+    fixtures = ['placeholder_data']
+
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+
+    def test_icon_stylesheet_linked(self):
+        response = self.client.get(reverse('submissions'))
+        self.assertContains(response, 'events/css/vanilla-icons.css')
+
+    def test_submissions_icons_by_duration(self):
+        response = self.client.get(reverse('submissions'))
+        self.assertContains(response, 'events/img/bolt.svg')
+        self.assertContains(response, 'p-icon--priority-low')
+        self.assertContains(response, 'p-icon--priority-critical')
+
+    def test_submissions_has_untitled_icon_column(self):
+        response = self.client.get(reverse('submissions'))
+        self.assertContains(response, '<th></th>', count=3)  # one per status section
+
+    def test_detail_chip_for_long_talk(self):
+        talk = Talk.objects.filter(duration_minutes=45).first()
+        response = self.client.get(reverse('talk-detail', args=[talk.id]))
+        self.assertContains(response, 'class="p-chip"')
+        self.assertContains(response, '45 mins')
+        self.assertContains(response, 'p-icon--priority-critical')
+
+    def test_detail_chip_for_short_talk(self):
+        talk = Talk.objects.filter(duration_minutes=25).first()
+        response = self.client.get(reverse('talk-detail', args=[talk.id]))
+        self.assertContains(response, '25 mins')
+        self.assertContains(response, 'p-icon--priority-low')
+
+    def test_detail_chip_for_lightning_talk(self):
+        talk = Talk.objects.filter(duration_minutes=5).first()
+        response = self.client.get(reverse('talk-detail', args=[talk.id]))
+        self.assertContains(response, '5 mins')
+        self.assertContains(response, 'events/img/bolt.svg')
+
+
+class ApplicationLayoutTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(staff)
+        event = Event.objects.create(name='E', code='E', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        speaker = Speaker.objects.create(name='S')
+        self.talk = Talk.objects.create(title='T', event=event, speaker=speaker)
+
+    def test_pages_use_application_layout(self):
+        for url in (reverse('submissions'), reverse('talk-detail', args=[self.talk.id])):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertContains(response, 'class="l-application"')
+                self.assertContains(response, 'class="l-navigation-bar"')
+                self.assertContains(response, 'class="l-navigation is-collapsed"')
+                self.assertContains(response, 'class="l-main"')
+                self.assertContains(response, 'js-menu-toggle')
+                self.assertNotContains(response, 'p-navigation')
+
+    def test_logo_is_in_side_drawer_for_wide_screens(self):
+        # .l-navigation-bar is display:none on wide screens, so the brand
+        # must also appear inside the drawer.
+        response = self.client.get(reverse('submissions'))
+        drawer = response.content.decode().split('class="l-navigation__drawer"', 1)[1]
+        self.assertIn('class="tannoy-logo"', drawer.split('</header>', 1)[0])
+        self.assertIn('Tannoy', drawer.split('</header>', 1)[0])
+
+    def test_submissions_is_current_nav_item(self):
+        response = self.client.get(reverse('submissions'))
+        self.assertContains(response, 'aria-current="page">', count=1)
+
+
+class TalkDetailToolbarTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+        event = Event.objects.create(name='E', code='E', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        speaker = Speaker.objects.create(name='S')
+        self.talk = Talk.objects.create(title='T', event=event, speaker=speaker)
+
+    def test_controls_are_above_content_and_no_card(self):
+        response = self.client.get(reverse('talk-detail', args=[self.talk.id]))
+        html = response.content.decode()
+        self.assertNotIn('Editorial Controls', html)
+        self.assertNotIn('class="p-card"', html)
+        controls = html.index('name="action" value="accept"')
+        self.assertLess(controls, html.index('<h2 class="p-heading--5">Speakers</h2>'))
+        self.assertIn('class="p-button--positive"', html)
+        self.assertIn('class="p-button--negative"', html)
+        self.assertIn('class="p-button--brand"', html)
+
+
+class SubmissionSectionsTests(TestCase):
+    fixtures = ['placeholder_data']
+
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+
+    def test_sections_in_pending_accepted_rejected_order(self):
+        response = self.client.get(reverse('submissions'))
+        self.assertEqual(
+            [section['key'] for section in response.context['sections']],
+            ['pending', 'accepted', 'rejected'],
+        )
+        html = response.content.decode()
+        pending = html.index('Pending (')
+        accepted = html.index('Accepted (')
+        rejected = html.index('Rejected (')
+        self.assertLess(pending, accepted)
+        self.assertLess(accepted, rejected)
+
+    def test_each_talk_appears_in_its_own_section_only(self):
+        response = self.client.get(reverse('submissions'))
+        total = 0
+        for section in response.context['sections']:
+            for talk in section['talks']:
+                self.assertEqual(talk.status, section['key'])
+            total += len(section['talks'])
+        self.assertEqual(total, Talk.objects.count())
+
+    def test_section_headers_show_counts(self):
+        response = self.client.get(reverse('submissions'))
+        for section in response.context['sections']:
+            self.assertContains(
+                response,
+                f"{section['label']} ({len(section['talks'])})",
+            )
+
+    def test_empty_section_shows_message(self):
+        Talk.objects.filter(status=Status.REJECTED).delete()
+        response = self.client.get(reverse('submissions'))
+        self.assertContains(response, 'No rejected submissions match these filters.')
+
+
+class TalkPublishingStateTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
+        self.client.force_login(self.staff)
+        event = Event.objects.create(name='E', code='E', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
+        speaker = Speaker.objects.create(name='S')
+        self.talk = Talk.objects.create(title='T', event=event, speaker=speaker)
+        self.url = reverse('talk-detail', args=[self.talk.id])
+
+    def button_is_disabled(self, html, action):
+        match = re.search(r'<button[^>]*value="%s"[^>]*>' % action, html)
+        self.assertIsNotNone(match, action)
+        return ' disabled' in match.group(0)
+
+    def set_state(self, status, published=False):
+        self.talk.status = status
+        self.talk.published = published
+        self.talk.save()
+
+    def test_published_defaults_to_false(self):
+        self.assertFalse(Talk.objects.get(pk=self.talk.pk).published)
+
+    def test_allowed_actions_per_state(self):
+        cases = {
+            Status.PENDING: {'accept', 'reject'},
+            Status.ACCEPTED: {'reject', 'publish'},
+            Status.REJECTED: {'accept'},
+        }
+        for status, expected in cases.items():
+            with self.subTest(status=status):
+                self.set_state(status)
+                self.assertEqual(self.talk.allowed_actions(), expected)
+        self.set_state(Status.ACCEPTED, published=True)
+        self.assertEqual(self.talk.allowed_actions(), set())
+
+    def test_accepted_disables_accept_and_enables_publish(self):
+        self.set_state(Status.ACCEPTED)
+        html = self.client.get(self.url).content.decode()
+        self.assertTrue(self.button_is_disabled(html, 'accept'))
+        self.assertFalse(self.button_is_disabled(html, 'publish'))
+
+    def test_rejected_disables_publish(self):
+        self.set_state(Status.REJECTED)
+        html = self.client.get(self.url).content.decode()
+        self.assertTrue(self.button_is_disabled(html, 'publish'))
+        self.assertFalse(self.button_is_disabled(html, 'accept'))
+
+    def test_published_disables_all_buttons(self):
+        self.set_state(Status.ACCEPTED, published=True)
+        response = self.client.get(self.url)
+        html = response.content.decode()
+        for action in ('accept', 'reject', 'publish'):
+            with self.subTest(action=action):
+                self.assertTrue(self.button_is_disabled(html, action))
+        self.assertContains(response, 'Published')
+
+    def test_publish_sets_published(self):
+        self.set_state(Status.ACCEPTED)
+        response = self.client.post(self.url, {'action': 'publish'})
+        self.assertRedirects(response, self.url)
+        self.talk.refresh_from_db()
+        self.assertTrue(self.talk.published)
+        self.assertEqual(self.talk.status, Status.ACCEPTED)
+
+    def test_publish_rejected_unless_accepted(self):
+        self.set_state(Status.PENDING)
+        self.assertEqual(self.client.post(self.url, {'action': 'publish'}).status_code, 400)
+        self.talk.refresh_from_db()
+        self.assertFalse(self.talk.published)
+
+    def test_no_actions_once_published(self):
+        self.set_state(Status.ACCEPTED, published=True)
+        for action in ('accept', 'reject', 'publish'):
+            with self.subTest(action=action):
+                self.assertEqual(self.client.post(self.url, {'action': action}).status_code, 400)
+        self.talk.refresh_from_db()
+        self.assertEqual(self.talk.status, Status.ACCEPTED)
+        self.assertTrue(self.talk.published)
+
+    def test_accept_rejected_when_already_accepted(self):
+        self.set_state(Status.ACCEPTED)
+        self.assertEqual(self.client.post(self.url, {'action': 'accept'}).status_code, 400)

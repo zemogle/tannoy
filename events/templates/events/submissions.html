@@ -8,12 +8,12 @@
 {% endblock %}
 
 {% block content %}
-  <div class="col-9">
+  <div class="grid-col-6">
     <h1 class="p-heading--2">Submissions</h1>
     <p class="u-text--muted">Review and manage talks submitted to the Ubuntu Summit</p>
   </div>
 
-  <div class="col-3">
+  <div class="grid-col-2">
     <form method="get" class="p-search-box" role="search">
       <input type="hidden" name="title" value="{{ title }}">
       <input type="hidden" name="status" value="{{ status }}">
@@ -25,7 +25,7 @@
     </form>
   </div>
 
-  <div class="col-9">
+  <div class="grid-col-6">
     {% for section in sections %}
       <table class="submissions-table" aria-label="{{ section.label }} submissions">
         <thead>
@@ -68,7 +68,7 @@
     {% endfor %}
   </div>
 
-  <div class="col-3">
+  <div class="grid-col-2">
     <form method="get" class="p-card" aria-label="Filters">
       <h2 class="p-heading--5">Filters</h2>
       <input type="hidden" name="q" value="{{ search }}">

@@ -12,6 +12,44 @@
       border-left-color: #888;
       background: #f9f9f9;
     }
+    /* Talk types by duration, using Vanilla's brand and semantic colours. */
+    .builder-card--lightning {
+      border-left-color: #0f95a1; /* $color-accent */
+    }
+    .builder-card--short {
+      border-left-color: #e95420; /* $color-brand */
+    }
+    .builder-card--long {
+      border-left-color: #24598f; /* $color-information */
+    }
+    .builder-key {
+      list-style: none;
+      margin: 0 0 1rem;
+      padding: 0;
+    }
+    .builder-key li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .builder-key__swatch {
+      display: inline-block;
+      flex: none;
+      width: 1rem;
+      height: 1rem;
+    }
+    .builder-key__swatch--lightning {
+      background: #0f95a1;
+    }
+    .builder-key__swatch--short {
+      background: #e95420;
+    }
+    .builder-key__swatch--long {
+      background: #24598f;
+    }
+    .builder-key__swatch--break {
+      background: #888;
+    }
     .builder-column {
       min-height: 400px;
       padding: 0.5rem;
@@ -25,51 +63,77 @@
 {% endblock %}
 
 {% block content %}
-  <div class="col-9">
+  <div class="grid-col-6">
     <p class="p-text--small u-text--muted">
       <a href="{% url 'events' %}">Events</a> /
       <a href="{% url 'event-detail' event.id %}">{{ event.name }}</a> / Programme builder
     </p>
     <h1 class="p-heading--2">Programme builder</h1>
-    <p class="u-text--muted">Drag accepted talks into a day. Save each day to update its running order.</p>
+    <p class="u-text--muted">Drag accepted talks and breaks into a day. Save each day to update its running order.</p>
     <p id="builder-status" class="p-text--small u-text--muted" role="status"></p>
+
+    <div class="grid-row">
+      {% for programme in programmes %}
+        <div class="grid-col-3">
+          <h4>Day {{ programme.day }} &middot; {{ programme.date|date:"D, j M" }}</h4>
+          <div class="day-list builder-column" data-save-url="{% url 'programme-items' programme.id %}" data-programme="{{ programme.id }}">
+            {% for item in programme.schedule %}
+              <div class="p-card u-space-b--small {% if item.type == 'talk' %}builder-card {% if item.duration == 5 %}builder-card--lightning{% elif item.duration == 25 %}builder-card--short{% elif item.duration == 45 %}builder-card--long{% endif %}{% else %}builder-card builder-card--break{% endif %}" data-type="{{ item.type }}" data-id="{{ item.id }}">
+                <p class="p-text--small u-no-margin--bottom"><strong>{{ item.time }}</strong> {{ item.label }}</p>
+              </div>
+            {% endfor %}
+          </div>
+          <p class="u-align--right">
+            <button type="button" class="p-button save-day-btn" data-programme="{{ programme.id }}">Save day {{ programme.day }}</button>
+          </p>
+        </div>
+      {% empty %}
+        <div class="grid-col-6">
+          <p class="u-text--muted">This event has no days. Check the event dates.</p>
+        </div>
+      {% endfor %}
+    </div>
   </div>
 
-  <div class="col-3">
+  <div class="grid-col-2">
+    <h4>Key</h4>
+    <ul class="builder-key p-text--small">
+      <li><span class="builder-key__swatch builder-key__swatch--lightning" aria-hidden="true"></span> Lightning talk (5 mins)</li>
+      <li><span class="builder-key__swatch builder-key__swatch--short" aria-hidden="true"></span> Short talk (25 mins)</li>
+      <li><span class="builder-key__swatch builder-key__swatch--long" aria-hidden="true"></span> Long talk (45 mins)</li>
+      <li><span class="builder-key__swatch builder-key__swatch--break" aria-hidden="true"></span> Break</li>
+    </ul>
+
     <h4>Unscheduled talks</h4>
     <div id="holding-pen" class="builder-column">
       {% for talk in unscheduled %}
-        <div class="p-card builder-card u-space-b--small" data-type="talk" data-id="{{ talk.id }}">
+        <div class="p-card builder-card {% if talk.duration_minutes == 5 %}builder-card--lightning{% elif talk.duration_minutes == 25 %}builder-card--short{% elif talk.duration_minutes == 45 %}builder-card--long{% endif %} u-space-b--small" data-type="talk" data-id="{{ talk.id }}">
           <p class="p-text--small u-no-margin--bottom"><strong>{{ talk.title }}</strong></p>
           <p class="p-text--x-small u-text--muted u-no-margin--bottom">
-            {{ talk.speaker.name }} &middot; {{ talk.duration_minutes|default_if_none:"" }}{% if talk.duration_minutes %} mins{% endif %}
+            {{ talk.speaker.name }}{% if talk.duration_minutes %} &middot; {{ talk.duration_minutes }} mins{% endif %}
           </p>
         </div>
       {% empty %}
         <p class="u-text--muted">All accepted talks are scheduled.</p>
       {% endfor %}
     </div>
-  </div>
 
-  {% for programme in programmes %}
-    <div class="col-3">
-      <h4>Day {{ programme.day }} &middot; {{ programme.date|date:"D, j M" }}</h4>
-      <div class="day-list builder-column" data-save-url="{% url 'programme-items' programme.id %}" data-programme="{{ programme.id }}">
-        {% for item in programme.schedule %}
-          <div class="p-card u-space-b--small {% if item.type == 'talk' %}builder-card{% else %}builder-card builder-card--break{% endif %}" data-type="{{ item.type }}" data-id="{{ item.id }}">
-            <p class="p-text--small u-no-margin--bottom">{{ item.label }}</p>
-          </div>
-        {% endfor %}
+    <h4>Breaks</h4>
+    <div id="break-blocks" class="builder-column">
+      <div class="p-card builder-card builder-card--break u-space-b--small" data-type="new_break" data-name="Coffee &amp; Networking" data-minutes="20">
+        <p class="p-text--small u-no-margin--bottom"><strong>Coffee &amp; Networking</strong> (20 mins)</p>
       </div>
-      <p class="u-align--right">
-        <button type="button" class="p-button save-day-btn" data-programme="{{ programme.id }}">Save day {{ programme.day }}</button>
-      </p>
+      <div class="p-card builder-card builder-card--break u-space-b--small" data-type="new_break" data-name="Coffee &amp; Networking" data-minutes="30">
+        <p class="p-text--small u-no-margin--bottom"><strong>Coffee &amp; Networking</strong> (30 mins)</p>
+      </div>
+      <div class="p-card builder-card builder-card--break u-space-b--small" data-type="new_break" data-name="Lunch" data-minutes="60">
+        <p class="p-text--small u-no-margin--bottom"><strong>Lunch</strong> (60 mins)</p>
+      </div>
+      <div class="p-card builder-card builder-card--break u-space-b--small" data-type="new_break" data-name="Lunch" data-minutes="90">
+        <p class="p-text--small u-no-margin--bottom"><strong>Lunch</strong> (90 mins)</p>
+      </div>
     </div>
-  {% empty %}
-    <div class="col-9">
-      <p class="u-text--muted">This event has no days. Check the event dates.</p>
-    </div>
-  {% endfor %}
+  </div>
 
   <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
@@ -83,7 +147,26 @@
         status.textContent = message;
       }
 
-      document.querySelectorAll('.day-list, #holding-pen').forEach(function (list) {
+      // Talks can only be returned to the unscheduled list; breaks are removed by saving the day.
+      new Sortable(document.getElementById('holding-pen'), {
+        group: {
+          name: 'programme-builder',
+          put: function (to, from, dragEl) {
+            return dragEl.getAttribute('data-type') === 'talk';
+          },
+        },
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+      });
+
+      // Generic breaks are cloned into a day, so the box always keeps its four options.
+      new Sortable(document.getElementById('break-blocks'), {
+        group: {name: 'programme-builder', pull: 'clone', put: false},
+        animation: 150,
+        sort: false,
+      });
+
+      document.querySelectorAll('.day-list').forEach(function (list) {
         new Sortable(list, {
           group: 'programme-builder',
           animation: 150,
@@ -93,8 +176,15 @@
 
       function itemsFor(list) {
         return Array.from(list.children)
-          .filter(function (card) { return card.hasAttribute('data-id'); })
+          .filter(function (card) { return card.hasAttribute('data-type'); })
           .map(function (card) {
+            if (card.getAttribute('data-type') === 'new_break') {
+              return {
+                type: 'new_break',
+                name: card.getAttribute('data-name'),
+                minutes: parseInt(card.getAttribute('data-minutes'), 10),
+              };
+            }
             return {type: card.getAttribute('data-type'), id: parseInt(card.getAttribute('data-id'), 10)};
           });
       }
@@ -117,15 +207,14 @@
             })
             .then(function (result) {
               if (result.ok) {
-                setStatus('Saved day with ' + result.body.items.length + ' items.');
+                window.location.reload();
               } else {
                 setStatus('Error: ' + (result.body.error || 'save failed'));
+                button.disabled = false;
               }
             })
             .catch(function () {
               setStatus('Error: save failed.');
-            })
-            .finally(function () {
               button.disabled = false;
             });
         });

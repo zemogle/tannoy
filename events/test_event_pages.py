@@ -1,4 +1,5 @@
 import datetime
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -112,7 +113,7 @@ class ProgrammeBuilderTests(TestCase):
 
     def test_only_accepted_unplaced_talks_are_offered(self):
         html = self.client.get(self.url).content.decode()
-        pen = html[html.index('id="holding-pen"'):html.index('<h4>Day 1')]
+        pen = html[html.index('id="holding-pen"'):html.index('id="break-blocks"')]
         self.assertIn('Accepted Talk', pen)
         self.assertNotIn('Pending Talk', pen)
         self.assertNotIn('Placed Talk', pen)
@@ -126,3 +127,157 @@ class ProgrammeBuilderTests(TestCase):
     def test_each_day_saves_through_programme_api(self):
         html = self.client.get(self.url).content.decode()
         self.assertIn(reverse('programme-items', args=[self.day_one.pk]), html)
+
+    def test_breaks_box_offers_four_generic_breaks(self):
+        html = self.client.get(self.url).content.decode()
+        box = html[html.index('id="break-blocks"'):html.index('<input type="hidden" id="csrf-token"')]
+        self.assertEqual(box.count('data-type="new_break"'), 4)
+        for name, minutes in [('Coffee &amp; Networking', 20), ('Coffee &amp; Networking', 30), ('Lunch', 60), ('Lunch', 90)]:
+            self.assertIn(f'data-name="{name}" data-minutes="{minutes}"', box)
+
+    def test_layout_has_75_percent_content_and_25_percent_sidebar(self):
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('class="grid-col-6"', html)
+        self.assertIn('class="grid-col-2"', html)
+        self.assertLess(html.index('class="grid-col-6"'), html.index('class="grid-col-2"'))
+
+
+class ProgrammeBreakSaveTests(TestCase):
+    def setUp(self):
+        import json
+
+        self.json = json
+        self.event = Event.objects.create(
+            name='Save Summit', code='S1',
+            start_date=datetime.date(2026, 12, 1), end_date=datetime.date(2026, 12, 2),
+        )
+        speaker = Speaker.objects.create(name='Sam Ray')
+        self.talk = Talk.objects.create(
+            title='First talk', event=self.event, speaker=speaker, status='accepted', duration_minutes=25,
+        )
+        self.programme = Programme.objects.create(name='Day one', event=self.event, day=1)
+        get_user_model().objects.create_superuser('admin', 'a@example.com', 'pw')
+        self.client.force_login(get_user_model().objects.get(username='admin'))
+        self.url = reverse('programme-items', args=[self.programme.pk])
+
+    def save(self, items):
+        return self.client.put(
+            self.url, self.json.dumps({'items': items}), content_type='application/json',
+        )
+
+    def test_new_breaks_become_break_objects_in_order(self):
+        from .models import Break
+
+        response = self.save([
+            {'type': 'talk', 'id': self.talk.pk},
+            {'type': 'new_break', 'name': 'Coffee & Networking', 'minutes': 20},
+            {'type': 'new_break', 'name': 'Lunch', 'minutes': 60},
+        ])
+        self.assertEqual(response.status_code, 200)
+        breaks = list(Break.objects.filter(programme=self.programme).order_by('start_time'))
+        self.assertEqual([b.name for b in breaks], ['Coffee & Networking', 'Lunch'])
+        # Day starts 09:30 London time; talk 09:30-09:55, coffee 09:55-10:15, lunch 10:15-11:15.
+        self.assertEqual(breaks[0].start_time.astimezone(ZoneInfo('Europe/London')).strftime('%H:%M'), '09:55')
+        self.assertEqual(breaks[0].end_time.astimezone(ZoneInfo('Europe/London')).strftime('%H:%M'), '10:15')
+        self.assertEqual(breaks[1].end_time.astimezone(ZoneInfo('Europe/London')).strftime('%H:%M'), '11:15')
+        self.assertEqual(
+            [item['type'] for item in response.json()['items']], ['talk', 'break', 'break'],
+        )
+
+    def test_saved_break_is_kept_when_day_is_saved_again(self):
+        from .models import Break
+
+        self.save([{'type': 'new_break', 'name': 'Lunch', 'minutes': 90}])
+        brk = Break.objects.get(programme=self.programme)
+        response = self.save([{'type': 'break', 'id': brk.pk}])
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Break.objects.filter(programme=self.programme).count(), 1)
+
+    def test_invalid_break_length_is_rejected(self):
+        response = self.save([{'type': 'new_break', 'name': 'Tea', 'minutes': 45}])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('error', response.json())
+
+    def test_blank_break_name_is_rejected(self):
+        response = self.save([{'type': 'new_break', 'name': '  ', 'minutes': 20}])
+        self.assertEqual(response.status_code, 400)
+
+
+
+
+class ProgrammeBlockTimeTests(TestCase):
+    def setUp(self):
+        from .models import Break, ProgrammeItem
+
+        self.event = Event.objects.create(
+            name='Clock Summit', code='C1',
+            start_date=datetime.date(2027, 4, 27), end_date=datetime.date(2027, 4, 27),
+        )
+        speaker = Speaker.objects.create(name='Jo Park')
+        talk = Talk.objects.create(
+            title='Timed talk', event=self.event, speaker=speaker, status='accepted', duration_minutes=25,
+        )
+        programme = Programme.objects.create(name='Day one', event=self.event, day=1)
+        # The talk runs 09:30-09:55 London time, so the one-hour lunch starts at 09:55.
+        # Stored in UTC, where that is 08:55.
+        brk = Break.objects.create(
+            programme=programme, name='Lunch',
+            start_time=datetime.datetime(2027, 4, 27, 8, 0, tzinfo=datetime.timezone.utc),
+            end_time=datetime.datetime(2027, 4, 27, 9, 0, tzinfo=datetime.timezone.utc),
+        )
+        ProgrammeItem.objects.create(programme=programme, position=1, talk=talk)
+        ProgrammeItem.objects.create(programme=programme, position=2, brk=brk)
+        self.brk = brk
+        get_user_model().objects.create_superuser('admin', 'a@example.com', 'pw')
+        self.client.force_login(get_user_model().objects.get(username='admin'))
+
+    def test_block_times_shown_before_titles_in_summit_timezone(self):
+        html = self.client.get(reverse('programme-builder', args=[self.event.pk])).content.decode()
+        self.assertIn('<strong>09:30</strong> Timed talk', html)
+        self.assertIn('<strong>09:55</strong> Lunch', html)
+        self.assertNotIn('2027', html.split('Day 1')[1].split('Unscheduled talks')[0])
+
+
+class BreakSequenceTests(ProgrammeBreakSaveTests):
+    def test_saving_moves_existing_break_to_follow_the_talk_before_it(self):
+        from .models import Break
+
+        brk = Break.objects.create(
+            programme=self.programme, name='Lunch',
+            start_time=datetime.datetime(2027, 1, 1, 12, 0, tzinfo=ZoneInfo('Europe/London')),
+            end_time=datetime.datetime(2027, 1, 1, 13, 0, tzinfo=ZoneInfo('Europe/London')),
+        )
+        response = self.save([{'type': 'talk', 'id': self.talk.pk}, {'type': 'break', 'id': brk.pk}])
+        self.assertEqual(response.status_code, 200)
+        brk.refresh_from_db()
+        london = brk.start_time.astimezone(ZoneInfo('Europe/London'))
+        self.assertEqual(london.strftime('%H:%M'), '09:55')
+        self.assertEqual((brk.end_time - brk.start_time).total_seconds(), 3600)
+
+
+class TalkTypeColourTests(ProgrammeBuilderTests):
+    def test_cards_carry_a_class_for_each_talk_length(self):
+        Talk.objects.filter(pk=self.placed.pk).update(duration_minutes=45)
+        Talk.objects.filter(pk=self.accepted.pk).update(duration_minutes=5)
+        html = self.client.get(self.url).content.decode()
+        self.assertIn('builder-card--long', html)
+        self.assertIn('builder-card--lightning', html)
+        self.assertIn('--short', html)  # defined in the stylesheet
+
+
+class FaviconTests(EventPagesTests):
+    def test_pages_link_the_ubuntu_favicon(self):
+        html = self.client.get(reverse('events')).content.decode()
+        self.assertIn('rel="icon" type="image/x-icon" href="/static/events/img/favicon.ico"', html)
+        self.assertIn('href="/static/events/img/favicon-64.png"', html)
+        self.assertIn('href="/static/events/img/favicon-180.png"', html)
+
+
+class ProgrammeKeyTests(ProgrammeBuilderTests):
+    def test_key_explains_each_colour(self):
+        html = self.client.get(self.url).content.decode()
+        key = html[html.index('<h4>Key</h4>'):html.index('<h4>Unscheduled talks</h4>')]
+        self.assertIn('Lightning talk (5 mins)', key)
+        self.assertIn('Short talk (25 mins)', key)
+        self.assertIn('Long talk (45 mins)', key)
+        self.assertIn('Break', key)

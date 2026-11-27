@@ -5,6 +5,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Tannoy{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'events/img/favicon.ico' %}">
+  <link rel="icon" type="image/png" sizes="64x64" href="{% static 'events/img/favicon-64.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'events/img/favicon-180.png' %}">
   <link rel="stylesheet" href="{% static 'events/css/vanilla-framework-4.62.3.min.css' %}">
   <link rel="stylesheet" href="{% static 'events/css/vanilla-icons.css' %}">
   <style>
@@ -93,7 +96,7 @@
 
     <main class="l-main">
       <div class="u-fixed-width">
-        <div class="row">
+        <div class="grid-row">
           {% block content %}{% endblock %}
         </div>
       </div>

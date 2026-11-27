@@ -18,7 +18,7 @@
 
 {% block content %}
 
-  <div class="col-9">
+  <div class="grid-col-6">
     <p class="p-text--small u-text--muted">
       <a href="{% url 'submissions' %}">Submissions</a> / Talk detail
     </p>
@@ -64,15 +64,15 @@
     </div>
     <h2 class="p-heading--5">Speakers</h2>
     {% for speaker in speakers %}
-      <div class="row u-vertically-center">
-        <div class="col-1">
+      <div class="grid-row u-vertically-center">
+        <div class="grid-col-1">
           {% if speaker.headshot %}
             <img class="speaker-headshot" src="{{ speaker.headshot.url }}" alt="Headshot of {{ speaker.name }}">
           {% else %}
             <span class="p-icon--user" aria-hidden="true"></span>
           {% endif %}
         </div>
-        <div class="col-8">
+        <div class="grid-col-6">
           <p class="u-no-margin--bottom"><strong>{{ speaker.name }}</strong>
             {% if speaker.requests_sponsorship %}<span class="p-chip--information"><span class="p-chip__value">Requests sponsorship</span></span>{% endif %}
           </p>

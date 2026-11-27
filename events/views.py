@@ -2,6 +2,7 @@ import csv
 import datetime
 import io
 import json
+from zoneinfo import ZoneInfo
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
@@ -56,6 +57,49 @@ def _is_int(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+_ITEM_FORMAT_ERROR = (
+    'Each item must be {"type": "talk" | "break", "id": <integer>} '
+    'or {"type": "new_break", "name": <text>, "minutes": <integer>}.'
+)
+NEW_BREAK_MINUTES = (20, 30, 60, 90)
+DAY_START = datetime.time(9, 30)
+DAY_TIMEZONE = ZoneInfo('Europe/London')
+DEFAULT_TALK_MINUTES = 25
+
+
+def _resolve_running_order(programme, refs, talks, breaks):
+    """
+    Turn (kind, id) references into talk and break objects. Every item starts
+    when the previous one ends, so each break's stored times are set from the
+    running order. New breaks are created here.
+    """
+    date = programme.event.start_date + datetime.timedelta(days=programme.day - 1)
+    cursor = datetime.datetime.combine(date, DAY_START, tzinfo=DAY_TIMEZONE)
+    resolved = []
+    for kind, ident in refs:
+        if kind == 'talk':
+            talk = talks[ident]
+            cursor += datetime.timedelta(minutes=talk.duration_minutes or DEFAULT_TALK_MINUTES)
+            resolved.append(('talk', talk))
+        elif kind == 'break':
+            brk = breaks[ident]
+            length = brk.end_time - brk.start_time
+            brk.start_time = cursor
+            brk.end_time = cursor + length
+            brk.save(update_fields=['start_time', 'end_time'])
+            cursor = brk.end_time
+            resolved.append(('break', brk))
+        else:
+            name, minutes = ident
+            start = cursor
+            cursor = start + datetime.timedelta(minutes=minutes)
+            brk = Break.objects.create(
+                programme=programme, name=name, start_time=start, end_time=cursor,
+            )
+            resolved.append(('break', brk))
+    return resolved
+
+
 @require_http_methods(['GET', 'PUT'])
 def programme_items(request, programme_id):
     """
@@ -93,17 +137,32 @@ def programme_items(request, programme_id):
 
     refs = []
     for entry in items:
+        if not isinstance(entry, dict):
+            return _error(_ITEM_FORMAT_ERROR)
+        if entry.get('type') == 'new_break':
+            name = entry.get('name')
+            minutes = entry.get('minutes')
+            if (
+                not isinstance(name, str)
+                or not name.strip()
+                or len(name) > 200
+                or minutes not in NEW_BREAK_MINUTES
+            ):
+                return _error(
+                    'New breaks must be {"type": "new_break", "name": <text>, '
+                    '"minutes": 20 | 30 | 60 | 90}.'
+                )
+            refs.append(('new_break', (name.strip(), minutes)))
+            continue
         if (
-            not isinstance(entry, dict)
-            or entry.get('type') not in ('talk', 'break')
+            entry.get('type') not in ('talk', 'break')
             or not _is_int(entry.get('id'))
         ):
-            return _error(
-                'Each item must be {"type": "talk" | "break", "id": <integer>}.'
-            )
+            return _error(_ITEM_FORMAT_ERROR)
         refs.append((entry['type'], entry['id']))
 
-    if len(set(refs)) != len(refs):
+    existing_refs = [ref for ref in refs if ref[0] != 'new_break']
+    if len(set(existing_refs)) != len(existing_refs):
         return _error('Items must not contain duplicates.')
 
     talk_ids = [ident for kind, ident in refs if kind == 'talk']
@@ -138,18 +197,47 @@ def programme_items(request, programme_id):
     # bulk_create bypasses ProgrammeItem.save(), so the checks above are the
     # validation for this path.
     with transaction.atomic():
+        resolved = _resolve_running_order(programme, refs, talks, breaks)
         ProgrammeItem.objects.filter(programme=programme).delete()
         ProgrammeItem.objects.bulk_create([
             ProgrammeItem(
                 programme=programme,
                 position=position,
-                talk=talks[ident] if kind == 'talk' else None,
-                brk=breaks[ident] if kind == 'break' else None,
+                talk=obj if kind == 'talk' else None,
+                brk=obj if kind == 'break' else None,
             )
-            for position, (kind, ident) in enumerate(refs, start=1)
+            for position, (kind, obj) in enumerate(resolved, start=1)
         ])
 
     return JsonResponse(_programme_payload(programme))
+
+
+def _schedule_with_times(programme):
+    """
+    Running order for display: each item starts when the previous one ends,
+    using talk durations and break lengths. Times are in the summit's timezone.
+    """
+    date = programme.event.start_date + datetime.timedelta(days=programme.day - 1)
+    cursor = datetime.datetime.combine(date, DAY_START, tzinfo=DAY_TIMEZONE)
+    schedule = []
+    for item in programme.items.select_related('talk', 'brk').order_by('position'):
+        if item.talk_id:
+            start = cursor
+            cursor += datetime.timedelta(minutes=item.talk.duration_minutes or DEFAULT_TALK_MINUTES)
+            schedule.append({
+                'type': 'talk', 'id': item.talk.pk, 'label': item.talk.title,
+                'duration': item.talk.duration_minutes,
+                'time': start.astimezone(DAY_TIMEZONE).strftime('%H:%M'),
+            })
+        else:
+            brk = item.brk
+            start = cursor
+            cursor += brk.end_time - brk.start_time
+            schedule.append({
+                'type': 'break', 'id': brk.pk, 'label': brk.name or 'Break',
+                'time': start.astimezone(DAY_TIMEZONE).strftime('%H:%M'),
+            })
+    return schedule
 
 
 def talk_speakers(talk):
@@ -367,12 +455,7 @@ def programme_builder(request, event_id):
     programmes = list(event.programmes.order_by('day'))
     for programme in programmes:
         programme.date = event.start_date + datetime.timedelta(days=programme.day - 1)
-        programme.schedule = [
-            {'type': 'talk', 'id': item.talk.pk, 'label': item.talk.title}
-            if item.talk_id
-            else {'type': 'break', 'id': item.brk.pk, 'label': str(item.brk)}
-            for item in programme.items.select_related('talk', 'brk').order_by('position')
-        ]
+        programme.schedule = _schedule_with_times(programme)
 
     placed_talk_ids = set(
         ProgrammeItem.objects.filter(programme__event=event, talk__isnull=False)

@@ -2,7 +2,6 @@ import csv
 import datetime
 import io
 import json
-from zoneinfo import ZoneInfo
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
@@ -17,6 +16,7 @@ from django.views.generic import DetailView
 from django.views.decorators.http import require_POST, require_http_methods
 
 from .models import Break, Event, Programme, ProgrammeItem, Speaker, Status, Talk
+from .schedule import DAY_START, DAY_TIMEZONE, DEFAULT_TALK_MINUTES
 
 
 def _error(message, status=400, **extra):
@@ -62,9 +62,6 @@ _ITEM_FORMAT_ERROR = (
     'or {"type": "new_break", "name": <text>, "minutes": <integer>}.'
 )
 NEW_BREAK_MINUTES = (20, 30, 60, 90)
-DAY_START = datetime.time(9, 30)
-DAY_TIMEZONE = ZoneInfo('Europe/London')
-DEFAULT_TALK_MINUTES = 25
 
 
 def _resolve_running_order(programme, refs, talks, breaks):
@@ -472,3 +469,35 @@ def programme_builder(request, event_id):
         'programmes': programmes,
         'unscheduled': unscheduled,
     })
+
+
+def _next_event():
+    today = timezone.localdate()
+    return Event.objects.filter(end_date__gte=today).order_by('start_date', 'pk').first()
+
+
+@staff_member_required
+def dashboard(request):
+    """Landing page: talk counts by status and programme capacity for the next event."""
+    next_event = _next_event()
+    context = {'section': 'dashboard', 'next_event': next_event}
+    if next_event is not None:
+        talks = next_event.talks.all()
+        counts = {
+            'received': talks.count(),
+            'pending': talks.filter(status=Status.PENDING).count(),
+            'accepted': talks.filter(status=Status.ACCEPTED).count(),
+            'rejected': talks.filter(status=Status.REJECTED).count(),
+        }
+        capacity = next_event.capacity
+        context.update({
+            'blocks': [
+                {'stat': counts['received'], 'headline': 'Talks received'},
+                {'stat': counts['pending'], 'headline': 'Pending'},
+                {'stat': counts['accepted'], 'headline': 'Accepted'},
+                {'stat': counts['rejected'], 'headline': 'Rejected'},
+            ],
+            'capacity': capacity,
+            'capacity_bar': min(capacity, 100),
+        })
+    return render(request, 'events/dashboard.html', context)

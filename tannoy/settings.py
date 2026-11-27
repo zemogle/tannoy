@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+import json
+import os
+import secrets
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,14 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-oora@b44cp0o##ss7pw9v&$hcq^78rd0d2ah=r%cc=1w4g52z='
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', secrets.token_hex(32))
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Development runs with DEBUG on by default. Set DJANGO_DEBUG=false in production.
-DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in ('1', 'true', 'yes')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'false') == 'true'
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = json.loads(os.environ.get('DJANGO_ALLOWED_HOSTS', '[]'))
 
 # Application definition
 
@@ -75,10 +77,21 @@ WSGI_APPLICATION = 'tannoy.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+   'default': {
+           'ENGINE': 'django.db.backends.postgresql',
+           'NAME': os.environ.get('POSTGRESQL_DB_NAME'),
+           'USER': os.environ.get('POSTGRESQL_DB_USERNAME'),
+           'PASSWORD': os.environ.get('POSTGRESQL_DB_PASSWORD'),
+           'HOST': os.environ.get('POSTGRESQL_DB_HOSTNAME'),
+           'PORT': os.environ.get('POSTGRESQL_DB_PORT'),
     }
 }
 

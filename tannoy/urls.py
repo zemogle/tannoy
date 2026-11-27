@@ -18,12 +18,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from django.views.generic import RedirectView
 
 from events import views as event_views
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='submissions', permanent=False)),
+    path('', event_views.dashboard, name='dashboard'),
     path('submissions/', event_views.submissions, name='submissions'),
     path('submissions/<int:talk_id>/', event_views.TalkDetailView.as_view(), name='talk-detail'),
     path('events/', event_views.events, name='events'),

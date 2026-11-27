@@ -281,3 +281,29 @@ class ProgrammeKeyTests(ProgrammeBuilderTests):
         self.assertIn('Short talk (25 mins)', key)
         self.assertIn('Long talk (45 mins)', key)
         self.assertIn('Break', key)
+
+
+class TalkYoutubeLinkTests(EventPagesTests):
+    def test_detail_shows_youtube_link_when_set(self):
+        talk = Talk.objects.get(title='Opening Talk')
+        talk.youtube_url = 'https://www.youtube.com/watch?v=abc123'
+        talk.save()
+        html = self.client.get(reverse('talk-detail', args=[talk.pk])).content.decode()
+        self.assertIn('href="https://www.youtube.com/watch?v=abc123"', html)
+        self.assertIn('p-icon--youtube', html)
+
+    def test_detail_hides_youtube_link_when_blank(self):
+        talk = Talk.objects.get(title='Opening Talk')
+        html = self.client.get(reverse('talk-detail', args=[talk.pk])).content.decode()
+        self.assertNotIn('p-icon--youtube', html)
+
+
+class SpeakerMediaObjectTests(EventPagesTests):
+    def test_speakers_use_media_objects_and_sponsorship_chip_has_own_line(self):
+        talk = Talk.objects.get(title='Opening Talk')
+        talk.speaker.requests_sponsorship = True
+        talk.speaker.save()
+        html = self.client.get(reverse('talk-detail', args=[talk.pk])).content.decode()
+        self.assertIn('class="p-media-object"', html)
+        self.assertIn('class="p-media-object__title', html)
+        self.assertIn('<p><span class="p-chip--information"><span class="p-chip__value">Requests sponsorship', html)

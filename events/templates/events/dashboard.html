@@ -1,0 +1,41 @@
+{% extends "events/base.html" %}
+
+{% block title %}Dashboard - Tannoy{% endblock %}
+
+{% block content %}
+<h1>Tannoy</h1>
+<h2 class="p-muted-heading">Speaker &amp; Talk management portal for the Ubuntu Summits</h2>
+  {% if next_event %}
+    <section class="p-section p-data-spotlight--4-blocks">
+      <div class="u-fixed-width">
+        <h2>Next event: {{ next_event.name }}</h2>
+      </div>
+      <div class="p-equal-height-row--wrap">
+        {% for block in blocks %}
+        <div class="p-equal-height-row__col u-no-margin--bottom p-data-spotlight__block">
+          <div class="p-equal-height-row__item">
+            <hr class="p-rule--highlight" />
+            <p class="p-heading--1 u-no-margin u-no-padding">{{ block.stat }}</p>
+          </div>
+          <p class="p-equal-height-row__item p-heading--3 u-no-margin u-no-padding">{{ block.headline }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="p-section">
+      <div class="u-fixed-width">
+        <h2 class="p-heading--4">Programme capacity</h2>
+        <p class="u-no-margin--bottom">{{ capacity }}% of the programme time is booked.</p>
+        <progress max="100" value="{{ capacity_bar }}" aria-label="Programme capacity: {{ capacity }}%">{{ capacity }}%</progress>
+      </div>
+    </section>
+  {% else %}
+    <section class="p-section">
+      <div class="u-fixed-width">
+        <h2 class="p-heading--2">Dashboard</h2>
+        <p class="u-text--muted">There is no upcoming event.</p>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,9 +1,11 @@
+import datetime
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
 from .banner import render_talk_banner
+from .schedule import DAY_END, DAY_START, DEFAULT_TALK_MINUTES, FIXED_BREAK_MINUTES_PER_DAY
 from .discourse import client_from_settings, publish_talk
 from .storage import HeadshotStorage
 
@@ -75,6 +77,25 @@ class Event(models.Model):
         super().save(*args, **kwargs)
 
     @property
+    def capacity(self):
+        """
+        Percentage of the event's programme time that is booked: accepted talks
+        plus the fixed breaks for each day, out of the time between DAY_START and DAY_END.
+        """
+        days = (self.end_date - self.start_date).days + 1
+        day_minutes = (
+            datetime.datetime.combine(datetime.date.min, DAY_END)
+            - datetime.datetime.combine(datetime.date.min, DAY_START)
+        ).seconds // 60
+        available = days * day_minutes
+        talk_minutes = sum(
+            talk.duration_minutes or DEFAULT_TALK_MINUTES
+            for talk in self.talks.filter(status=Status.ACCEPTED)
+        )
+        booked = days * FIXED_BREAK_MINUTES_PER_DAY + talk_minutes
+        return round(100 * booked / available, 1) if available else 0.0
+
+    @property
     def is_next(self):
         """True if this is the earliest event that has not finished yet (today counts)."""
         upcoming = (
@@ -128,6 +149,7 @@ class Talk(models.Model):
     )
     published = models.BooleanField(default=False)
     slides = models.URLField(blank=True)
+    youtube_url = models.URLField('YouTube link', blank=True)
     byod = models.BooleanField('BYOD', default=False)
     discourse_id = models.IntegerField(null=True, blank=True)
     published_topic_id = models.IntegerField(null=True, blank=True)

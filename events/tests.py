@@ -391,9 +391,9 @@ class SubmissionsPageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse('admin:login'), response['Location'])
 
-    def test_root_redirects_to_submissions(self):
+    def test_root_is_the_dashboard_not_submissions(self):
         response = self.client.get('/')
-        self.assertRedirects(response, self.url, fetch_redirect_response=False)
+        self.assertTemplateUsed(response, 'events/dashboard.html')
 
     def test_table_is_populated_from_talks(self):
         response = self.client.get(self.url)

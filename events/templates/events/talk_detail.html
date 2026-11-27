@@ -64,21 +64,20 @@
     </div>
     <h2 class="p-heading--5">Speakers</h2>
     {% for speaker in speakers %}
-      <div class="grid-row u-vertically-center">
-        <div class="grid-col-1">
-          {% if speaker.headshot %}
-            <img class="speaker-headshot" src="{{ speaker.headshot.url }}" alt="Headshot of {{ speaker.name }}">
-          {% else %}
-            <span class="p-icon--user" aria-hidden="true"></span>
-          {% endif %}
-        </div>
-        <div class="grid-col-6">
-          <p class="u-no-margin--bottom"><strong>{{ speaker.name }}</strong>
-            {% if speaker.requests_sponsorship %}<span class="p-chip--information"><span class="p-chip__value">Requests sponsorship</span></span>{% endif %}
-          </p>
-          <p class="p-text--small u-text--muted">
+      <div class="p-media-object">
+        {% if speaker.headshot %}
+          <img class="p-media-object__image speaker-headshot" src="{{ speaker.headshot.url }}" alt="Headshot of {{ speaker.name }}">
+        {% else %}
+          <span class="p-icon--user p-media-object__image" aria-hidden="true"></span>
+        {% endif %}
+        <div class="p-media-object__details">
+          <h3 class="p-media-object__title p-heading--5 u-no-margin--bottom">{{ speaker.name }}</h3>
+          <p class="p-media-object__content p-text--small u-text--muted">
             Speaker{% if speaker.affiliation %} &middot; {{ speaker.affiliation }}{% endif %}
           </p>
+          {% if speaker.requests_sponsorship %}
+            <p><span class="p-chip--information"><span class="p-chip__value">Requests sponsorship</span></span></p>
+          {% endif %}
         </div>
       </div>
     {% empty %}
@@ -106,6 +105,13 @@
     <p class="p-text--small u-text--muted">
       Submitted {{ talk.submitted_at|date:"d.m.Y" }}
     </p>
+    {% if talk.youtube_url %}
+      <p>
+        <a href="{{ talk.youtube_url }}" target="_blank" rel="noopener noreferrer">
+          <i class="p-icon--youtube"></i> Watch on YouTube
+        </a>
+      </p>
+    {% endif %}
   </div>
 
   <script>

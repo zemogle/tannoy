@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Break, Event, Programme, ProgrammeItem, Speaker, Talk
+from .models import Break, Event, Programme, ProgrammeItem, Speaker, Talk, Unconference
 
 
 @admin.register(Event)
@@ -16,6 +16,14 @@ class SpeakerAdmin(admin.ModelAdmin):
     list_filter = ('requests_sponsorship',)
     search_fields = ('name', 'affiliation')
     filter_horizontal = ('talks',)
+
+
+@admin.register(Unconference)
+class UnconferenceAdmin(admin.ModelAdmin):
+    list_display = ('speaker', 'needs_power')
+    list_filter = ('needs_power',)
+    search_fields = ('speaker__name', 'description')
+    autocomplete_fields = ('speaker',)
 
 
 @admin.register(Talk)

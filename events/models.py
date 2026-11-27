@@ -1,7 +1,10 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
+from .banner import render_talk_banner
+from .discourse import client_from_settings, publish_talk
 from .storage import HeadshotStorage
 
 
@@ -35,14 +38,25 @@ class Speaker(models.Model):
     pronouns = models.CharField(max_length=50, blank=True)
     username = models.CharField(max_length=150, blank=True)
     bio = models.TextField(blank=True)
-    unconference = models.BooleanField(default=False)
-    unconference_idea = models.TextField(blank=True)
     in_person = models.BooleanField(default=True)
     submitter = models.BooleanField(default=False)
     talks = models.ManyToManyField('Talk', related_name='speakers', blank=True)
 
     def __str__(self):
         return self.name
+
+
+class Unconference(models.Model):
+    speaker = models.ForeignKey(
+        Speaker,
+        on_delete=models.CASCADE,
+        related_name='unconferences',
+    )
+    description = models.TextField(blank=True)
+    needs_power = models.BooleanField('needs power', default=False)
+
+    def __str__(self):
+        return f'{self.speaker.name}: {self.description[:50]}'
 
 
 class Event(models.Model):
@@ -59,6 +73,16 @@ class Event(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+    @property
+    def is_next(self):
+        """True if this is the earliest event that has not finished yet (today counts)."""
+        upcoming = (
+            Event.objects.filter(end_date__gte=timezone.localdate())
+            .order_by('start_date', 'pk')
+            .first()
+        )
+        return upcoming is not None and upcoming.pk == self.pk
 
     def __str__(self):
         return f'{self.name} ({self.start_date})'
@@ -97,13 +121,21 @@ class Talk(models.Model):
         choices=Topic.choices,
         blank=True,
     )
-    discourse_id = models.IntegerField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(
         choices=DURATION_CHOICES,
         null=True,
         blank=True,
     )
     published = models.BooleanField(default=False)
+    slides = models.URLField(blank=True)
+    byod = models.BooleanField('BYOD', default=False)
+    discourse_id = models.IntegerField(null=True, blank=True)
+    published_topic_id = models.IntegerField(null=True, blank=True)
+    banner = models.FileField(
+        upload_to='banners/',
+        storage=HeadshotStorage(),
+        blank=True,
+    )
 
     class Meta:
         constraints = [  # noqa: RUF012
@@ -131,6 +163,33 @@ class Talk(models.Model):
         if self.status == Status.ACCEPTED:
             actions.add('publish')
         return actions
+
+    def generate_banner(self):
+        """A 16:9 PIL image: the title above each speaker's headshot, name and affiliation."""
+        return render_talk_banner(self)
+
+    def submitter_speaker(self):
+        """The speaker who submitted the talk: the flagged submitter, else the primary speaker."""
+        return (
+            Speaker.objects.filter(Q(pk=self.speaker_id) | Q(talks=self), submitter=True).first()
+            or self.speaker
+        )
+
+    def publish(self, client=None, category=None):
+        """
+        Publish an accepted talk as a topic in the Discourse category, then lock it.
+
+        Creates the topic, or updates it if it already exists on Discourse.
+        Returns the Discourse topic ID.
+        """
+        if 'publish' not in self.allowed_actions():
+            raise ValidationError(f'A talk with status {self.status!r} cannot be published.')
+        if client is None:
+            client, category = client_from_settings()
+        self.published_topic_id = publish_talk(self, client, category)
+        self.published = True
+        self.save()
+        return self.published_topic_id
 
     def __str__(self):
         return self.title

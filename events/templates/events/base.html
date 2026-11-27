@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Tannoy{% endblock %}</title>
-  <link rel="stylesheet" href="https://assets.ubuntu.com/v1/vanilla-framework-version-4.20.0.min.css">
+  <link rel="stylesheet" href="{% static 'events/css/vanilla-framework-4.62.3.min.css' %}">
   <link rel="stylesheet" href="{% static 'events/css/vanilla-icons.css' %}">
   <style>
     .duration-icon {
@@ -13,11 +13,23 @@
       height: 1rem;
       vertical-align: -0.125rem;
     }
-    .tannoy-logo {
-      height: 1.5rem;
-      width: auto;
+    .p-panel__header {
+      align-items: center;
+    }
+    .tannoy-logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.5rem;
+      height: 2.5rem;
       margin-right: 0.5rem;
+      border-radius: 50%;
+      background: #e95420;
       vertical-align: middle;
+    }
+    .tannoy-logo {
+      height: 1.25rem;
+      width: auto;
       filter: invert(1);
     }
     .speaker-headshot {
@@ -35,7 +47,7 @@
       <div class="p-panel is-dark">
         <div class="p-panel__header">
           <a class="p-panel__logo" href="{% url 'submissions' %}" aria-label="Tannoy home">
-            <img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt="">
+            <span class="tannoy-logo-badge"><img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt=""></span>
           </a>
           <p class="p-panel__title u-no-margin--bottom">Tannoy</p>
           <div class="p-panel__controls">
@@ -50,7 +62,7 @@
         <div class="p-panel is-dark">
           <div class="p-panel__header">
             <a class="p-panel__logo" href="{% url 'submissions' %}" aria-label="Tannoy home">
-              <img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt="">
+              <span class="tannoy-logo-badge"><img class="tannoy-logo" src="{% static 'events/img/bullhorn.svg' %}" alt=""></span>
             </a>
             <p class="p-panel__title u-no-margin--bottom">Tannoy</p>
           </div>
@@ -63,7 +75,7 @@
                   </a>
                 </li>
                 <li class="p-side-navigation__item">
-                  <a class="p-side-navigation__link" href="{% url 'admin:events_event_changelist' %}"{% if section == 'events' %} aria-current="page"{% endif %}>
+                  <a class="p-side-navigation__link" href="{% url 'events' %}"{% if section == 'events' %} aria-current="page"{% endif %}>
                     <span class="p-side-navigation__label">Events</span>
                   </a>
                 </li>

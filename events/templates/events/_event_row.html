@@ -1,0 +1,6 @@
+<tr>
+  <td><a href="{% url 'event-detail' event.id %}"><strong>{{ event.name }}</strong></a></td>
+  <td class="u-text--muted">{{ event.code }}</td>
+  <td class="u-text--muted">{{ event.start_date|date:"d.m.Y" }} &ndash; {{ event.end_date|date:"d.m.Y" }}</td>
+  <td>{{ event.talk_count }}</td>
+</tr>

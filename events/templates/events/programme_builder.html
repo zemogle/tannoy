@@ -1,0 +1,135 @@
+{% extends "events/base.html" %}
+
+{% block title %}Programme builder - {{ event.name }} - Tannoy{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .builder-card {
+      border-left: 4px solid #772953;
+      cursor: grab;
+    }
+    .builder-card--break {
+      border-left-color: #888;
+      background: #f9f9f9;
+    }
+    .builder-column {
+      min-height: 400px;
+      padding: 0.5rem;
+      border: 2px dashed #ccc;
+    }
+    .sortable-ghost {
+      opacity: 0.4;
+      background-color: #f7f7f7;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="col-9">
+    <p class="p-text--small u-text--muted">
+      <a href="{% url 'events' %}">Events</a> /
+      <a href="{% url 'event-detail' event.id %}">{{ event.name }}</a> / Programme builder
+    </p>
+    <h1 class="p-heading--2">Programme builder</h1>
+    <p class="u-text--muted">Drag accepted talks into a day. Save each day to update its running order.</p>
+    <p id="builder-status" class="p-text--small u-text--muted" role="status"></p>
+  </div>
+
+  <div class="col-3">
+    <h4>Unscheduled talks</h4>
+    <div id="holding-pen" class="builder-column">
+      {% for talk in unscheduled %}
+        <div class="p-card builder-card u-space-b--small" data-type="talk" data-id="{{ talk.id }}">
+          <p class="p-text--small u-no-margin--bottom"><strong>{{ talk.title }}</strong></p>
+          <p class="p-text--x-small u-text--muted u-no-margin--bottom">
+            {{ talk.speaker.name }} &middot; {{ talk.duration_minutes|default_if_none:"" }}{% if talk.duration_minutes %} mins{% endif %}
+          </p>
+        </div>
+      {% empty %}
+        <p class="u-text--muted">All accepted talks are scheduled.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% for programme in programmes %}
+    <div class="col-3">
+      <h4>Day {{ programme.day }} &middot; {{ programme.date|date:"D, j M" }}</h4>
+      <div class="day-list builder-column" data-save-url="{% url 'programme-items' programme.id %}" data-programme="{{ programme.id }}">
+        {% for item in programme.schedule %}
+          <div class="p-card u-space-b--small {% if item.type == 'talk' %}builder-card{% else %}builder-card builder-card--break{% endif %}" data-type="{{ item.type }}" data-id="{{ item.id }}">
+            <p class="p-text--small u-no-margin--bottom">{{ item.label }}</p>
+          </div>
+        {% endfor %}
+      </div>
+      <p class="u-align--right">
+        <button type="button" class="p-button save-day-btn" data-programme="{{ programme.id }}">Save day {{ programme.day }}</button>
+      </p>
+    </div>
+  {% empty %}
+    <div class="col-9">
+      <p class="u-text--muted">This event has no days. Check the event dates.</p>
+    </div>
+  {% endfor %}
+
+  <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+  <script>
+    (function () {
+      var status = document.getElementById('builder-status');
+      var csrfToken = document.getElementById('csrf-token').value;
+
+      function setStatus(message) {
+        status.textContent = message;
+      }
+
+      document.querySelectorAll('.day-list, #holding-pen').forEach(function (list) {
+        new Sortable(list, {
+          group: 'programme-builder',
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+        });
+      });
+
+      function itemsFor(list) {
+        return Array.from(list.children)
+          .filter(function (card) { return card.hasAttribute('data-id'); })
+          .map(function (card) {
+            return {type: card.getAttribute('data-type'), id: parseInt(card.getAttribute('data-id'), 10)};
+          });
+      }
+
+      document.querySelectorAll('.save-day-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var list = document.querySelector('.day-list[data-programme="' + button.dataset.programme + '"]');
+          button.disabled = true;
+          setStatus('Saving...');
+          fetch(list.dataset.saveUrl, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken},
+            body: JSON.stringify({items: itemsFor(list)}),
+          })
+            .then(function (response) {
+              return response.json().then(function (body) {
+                return {ok: response.ok, body: body};
+              });
+            })
+            .then(function (result) {
+              if (result.ok) {
+                setStatus('Saved day with ' + result.body.items.length + ' items.');
+              } else {
+                setStatus('Error: ' + (result.body.error || 'save failed'));
+              }
+            })
+            .catch(function () {
+              setStatus('Error: save failed.');
+            })
+            .finally(function () {
+              button.disabled = false;
+            });
+        });
+      });
+    })();
+  </script>
+{% endblock %}

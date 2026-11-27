@@ -1,14 +1,19 @@
 import csv
+import datetime
+import io
 import json
 
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib import messages
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import DetailView
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_POST, require_http_methods
 
 from .models import Break, Event, Programme, ProgrammeItem, Speaker, Status, Talk
 
@@ -234,6 +239,33 @@ def submissions(request):
     })
 
 
+@require_POST
+def api_talk_banner(request, talk_id):
+    """
+    POST: generate a talk's banner and store it in Talk.banner.
+    Returns JSON: {"status": "ok", "talk_id": ..., "banner_url": ...} on success,
+    or {"status": "error", "message": ...} otherwise.
+    """
+    if not request.user.is_staff:
+        return JsonResponse({'status': 'error', 'message': 'Staff access required.'}, status=403)
+    talk = Talk.objects.filter(pk=talk_id).first()
+    if talk is None:
+        return JsonResponse({'status': 'error', 'message': 'Talk not found.'}, status=404)
+    if talk.status != Status.ACCEPTED:
+        return JsonResponse(
+            {'status': 'error', 'message': 'Only accepted talks have a banner.'}, status=400,
+        )
+    buffer = io.BytesIO()
+    talk.generate_banner().save(buffer, format='PNG')
+    if talk.banner:
+        talk.banner.delete(save=False)
+    talk.banner.save(f'talk-{talk.pk}.png', ContentFile(buffer.getvalue()), save=True)
+    url = talk.banner.url
+    if not url.startswith(('http://', 'https://', '/')):
+        url = f'/{url}'
+    return JsonResponse({'status': 'ok', 'talk_id': talk.pk, 'banner_url': url})
+
+
 @method_decorator(staff_member_required, name='dispatch')
 class TalkDetailView(DetailView):
     """
@@ -277,9 +309,83 @@ class TalkDetailView(DetailView):
             return HttpResponseBadRequest('Action not allowed for this talk.')
 
         if action == 'publish':
-            self.object.published = True
-            self.object.save(update_fields=['published'])
+            try:
+                self.object.publish()
+            except (ValueError, OSError) as error:
+                messages.error(request, f'Could not publish to Discourse: {error}')
+            else:
+                messages.success(request, 'Talk published to Discourse.')
         else:
             self.object.status = self.ACTIONS[action]
             self.object.save(update_fields=['status'])
         return redirect('talk-detail', talk_id=self.object.pk)
+
+
+@staff_member_required
+def events(request):
+    """Upcoming event in its own table, then all events in date order."""
+    today = timezone.localdate()
+    all_events = list(Event.objects.annotate(talk_count=Count('talks')).order_by('start_date', 'pk'))
+    upcoming = [event for event in all_events if event.end_date >= today]
+    next_event = upcoming[0] if upcoming else None
+    other_events = [event for event in all_events if event is not next_event]
+    return render(request, 'events/events.html', {
+        'section': 'events',
+        'next_event': next_event,
+        'other_events': other_events,
+    })
+
+
+@staff_member_required
+def event_detail(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    talks = list(event.talks.select_related('speaker').order_by('title'))
+    for talk in talks:
+        talk.all_speakers = talk_speakers(talk)
+    return render(request, 'events/event_detail.html', {
+        'section': 'events',
+        'event': event,
+        'talks': talks,
+        'programmes': event.programmes.order_by('day'),
+        'is_next': event.is_next,
+    })
+
+
+@staff_member_required
+def programme_builder(request, event_id):
+    """
+    Drag accepted talks and existing breaks into one column per event day.
+    Each column saves its running order through the programme_items API.
+    """
+    event = get_object_or_404(Event, pk=event_id)
+    day_count = (event.end_date - event.start_date).days + 1
+    for day in range(1, day_count + 1):
+        Programme.objects.get_or_create(
+            event=event, day=day, defaults={'name': f'{event.name} - Day {day}'},
+        )
+
+    programmes = list(event.programmes.order_by('day'))
+    for programme in programmes:
+        programme.date = event.start_date + datetime.timedelta(days=programme.day - 1)
+        programme.schedule = [
+            {'type': 'talk', 'id': item.talk.pk, 'label': item.talk.title}
+            if item.talk_id
+            else {'type': 'break', 'id': item.brk.pk, 'label': str(item.brk)}
+            for item in programme.items.select_related('talk', 'brk').order_by('position')
+        ]
+
+    placed_talk_ids = set(
+        ProgrammeItem.objects.filter(programme__event=event, talk__isnull=False)
+        .values_list('talk_id', flat=True)
+    )
+    unscheduled = [
+        talk for talk in event.talks.filter(status=Status.ACCEPTED).select_related('speaker')
+        .order_by('title')
+        if talk.pk not in placed_talk_ids
+    ]
+    return render(request, 'events/programme_builder.html', {
+        'section': 'events',
+        'event': event,
+        'programmes': programmes,
+        'unscheduled': unscheduled,
+    })

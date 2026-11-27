@@ -1,0 +1,61 @@
+{% extends "events/base.html" %}
+
+{% block title %}{{ event.name }} - Tannoy{% endblock %}
+
+{% block extra_head %}
+  <style>
+    .event-chip {
+      margin-bottom: 1rem;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+  <div class="col-9">
+    <p class="p-text--small u-text--muted">
+      <a href="{% url 'events' %}">Events</a> / {{ event.name }}
+    </p>
+    <h1 class="p-heading--2">{{ event.name }}</h1>
+    <p class="u-text--muted">
+      Code {{ event.code }} &middot;
+      {{ event.start_date|date:"d.m.Y" }} &ndash; {{ event.end_date|date:"d.m.Y" }}
+    </p>
+    {% if is_next %}
+      <p class="event-chip">
+        <span class="p-chip--branded">
+          <i class="p-icon--circle-of-friends"></i>
+          <span class="p-chip__value">Next Summit</span>
+        </span>
+      </p>
+    {% endif %}
+
+    <p><a class="p-button" href="{% url 'programme-builder' event.id %}">Build programme</a></p>
+
+    <h2 class="p-heading--4">Talks</h2>
+    <table class="submissions-table" aria-label="Talks for {{ event.name }}">
+      <thead>
+        <tr><th>Talk</th><th>Status</th><th>Speakers</th></tr>
+      </thead>
+      <tbody>
+        {% for talk in talks %}
+          <tr>
+            <td><a href="{% url 'talk-detail' talk.id %}"><strong>{{ talk.title }}</strong></a></td>
+            <td>{{ talk.get_status_display }}</td>
+            <td>
+              {% for speaker in talk.all_speakers %}{{ speaker.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3" class="u-text--muted">No talks for this event yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2 class="p-heading--4">Programmes</h2>
+    {% for programme in programmes %}
+      <p>Day {{ programme.day }}: {{ programme.name }}</p>
+    {% empty %}
+      <p class="u-text--muted">No programmes for this event yet.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

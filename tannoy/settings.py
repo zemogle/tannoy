@@ -24,7 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-oora@b44cp0o##ss7pw9v&$hcq^78rd0d2ah=r%cc=1w4g52z='
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Development runs with DEBUG on by default. Set DJANGO_DEBUG=false in production.
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in ('1', 'true', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
@@ -121,10 +122,15 @@ STATIC_URL = 'static/'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Speaker headshots are stored in S3 when USE_S3_HEADSHOTS is on.
+# Speaker headshots are stored in S3 when USE_S3_HEADSHOTS is on. By default S3
+# is used when DEBUG is off (production) and local MEDIA_ROOT storage when it is on.
 # AWS credentials are read by boto3 from the standard AWS_* environment
 # variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) or an IAM role.
-USE_S3_HEADSHOTS = os.environ.get('USE_S3_HEADSHOTS', '').lower() in ('1', 'true', 'yes')
+_use_s3_env = os.environ.get('USE_S3_HEADSHOTS')
+if _use_s3_env is None:
+    USE_S3_HEADSHOTS = not DEBUG
+else:
+    USE_S3_HEADSHOTS = _use_s3_env.lower() in ('1', 'true', 'yes')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME', '')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', '') or None
 AWS_S3_FILE_OVERWRITE = False

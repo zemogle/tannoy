@@ -643,7 +643,7 @@ class TalkAbstractTopicTests(TestCase):
         talk.refresh_from_db()
         self.assertEqual(talk.discourse_id, 12345)
 
-    def test_detail_shows_abstract_topic_and_discourse(self):
+    def test_detail_shows_abstract_and_topic_chip(self):
         talk = Talk.objects.create(
             title='T', event=self.event, speaker=self.speaker,
             abstract='Some abstract text.', topic='topic-security', discourse_id=77,
@@ -651,8 +651,8 @@ class TalkAbstractTopicTests(TestCase):
         response = self.client.get(reverse('talk-detail', args=[talk.id]))
         self.assertContains(response, 'Some abstract text.')
         self.assertContains(response, 'Abstract')
-        self.assertContains(response, 'Topic: Security')
-        self.assertContains(response, 'Discourse ID: 77')
+        self.assertContains(response, '<span class="p-chip__value">Security</span>')
+        self.assertNotContains(response, 'Discourse ID')
 
 
 class SpeakerProfileExtraFieldsTests(TestCase):
@@ -667,23 +667,18 @@ class SpeakerProfileExtraFieldsTests(TestCase):
         self.assertEqual(speaker.pronouns, '')
         self.assertEqual(speaker.username, '')
         self.assertEqual(speaker.bio, '')
-        self.assertFalse(speaker.unconference)
-        self.assertEqual(speaker.unconference_idea, '')
         self.assertTrue(speaker.in_person)
 
     def test_fields_saved(self):
         speaker = Speaker.objects.create(
             name='Alex', email='alex@example.com', pronouns='they/them',
-            username='alexm', bio='Bio text', unconference=True,
-            unconference_idea='Open hardware', in_person=True,
+            username='alexm', bio='Bio text', in_person=True,
         )
         speaker.refresh_from_db()
         self.assertEqual(speaker.email, 'alex@example.com')
         self.assertEqual(speaker.pronouns, 'they/them')
         self.assertEqual(speaker.username, 'alexm')
         self.assertEqual(speaker.bio, 'Bio text')
-        self.assertTrue(speaker.unconference)
-        self.assertEqual(speaker.unconference_idea, 'Open hardware')
         self.assertTrue(speaker.in_person)
 
     def test_invalid_email_rejected(self):
@@ -699,17 +694,13 @@ class SpeakerProfileExtraFieldsTests(TestCase):
             'pronouns': 'she/her',
             'username': 'sam',
             'bio': 'Hello',
-            'unconference': 'on',
-            'unconference_idea': 'Retro games',
             'in_person': 'on',
             'talks': [],
         })
         self.assertEqual(response.status_code, 302)
         sam = Speaker.objects.get(name='Sam')
         self.assertEqual(sam.pronouns, 'she/her')
-        self.assertTrue(sam.unconference)
         self.assertTrue(sam.in_person)
-        self.assertEqual(sam.unconference_idea, 'Retro games')
 
 
 class EventDatesTests(TestCase):
@@ -978,7 +969,7 @@ class TalkPublishingStateTests(TestCase):
         self.staff = User.objects.create_user('staff', password='pw', is_staff=True)
         self.client.force_login(self.staff)
         event = Event.objects.create(name='E', code='E', start_date=datetime.date(2026, 1, 1), end_date=datetime.date(2026, 1, 1))
-        speaker = Speaker.objects.create(name='S')
+        speaker = Speaker.objects.create(name='S', username='speaker-s')
         self.talk = Talk.objects.create(title='T', event=event, speaker=speaker)
         self.url = reverse('talk-detail', args=[self.talk.id])
 
@@ -1031,7 +1022,13 @@ class TalkPublishingStateTests(TestCase):
 
     def test_publish_sets_published(self):
         self.set_state(Status.ACCEPTED)
-        response = self.client.post(self.url, {'action': 'publish'})
+        discourse = mock.Mock()
+        discourse.resolve_category.return_value = (5, 'ubuntu-summit')
+        discourse.get_topic.return_value = None
+        discourse.find_topic_by_title.return_value = None
+        discourse.create_topic.return_value = 15
+        with mock.patch('events.models.client_from_settings', return_value=(discourse, 'ubuntu-summit')):
+            response = self.client.post(self.url, {'action': 'publish'})
         self.assertRedirects(response, self.url)
         self.talk.refresh_from_db()
         self.assertTrue(self.talk.published)

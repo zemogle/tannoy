@@ -30,8 +30,6 @@
       "username": "alexmorgan",
       "bio": "Placeholder bio for Alex Morgan.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -50,8 +48,6 @@
       "username": "jamielee",
       "bio": "Placeholder bio for Jamie Lee.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -70,8 +66,6 @@
       "username": "samirakhan",
       "bio": "Placeholder bio for Samira Khan.",
       "requests_sponsorship": false,
-      "unconference": true,
-      "unconference_idea": "Placeholder unconference idea.",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -90,8 +84,6 @@
       "username": "chrispatel",
       "bio": "Placeholder bio for Chris Patel.",
       "requests_sponsorship": true,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -110,8 +102,6 @@
       "username": "taylorsmith",
       "bio": "Placeholder bio for Taylor Smith.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": false,
       "submitter": true,
       "talks": [
@@ -130,8 +120,6 @@
       "username": "priyanatarajan",
       "bio": "Placeholder bio for Priya Natarajan.",
       "requests_sponsorship": false,
-      "unconference": true,
-      "unconference_idea": "Placeholder unconference idea.",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -150,8 +138,6 @@
       "username": "miguelalvarez",
       "bio": "Placeholder bio for Miguel Alvarez.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -170,8 +156,6 @@
       "username": "oluadeyemi",
       "bio": "Placeholder bio for Olu Adeyemi.",
       "requests_sponsorship": true,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -190,8 +174,6 @@
       "username": "hannahberg",
       "bio": "Placeholder bio for Hannah Berg.",
       "requests_sponsorship": false,
-      "unconference": true,
-      "unconference_idea": "Placeholder unconference idea.",
       "in_person": true,
       "submitter": true,
       "talks": [
@@ -210,8 +192,6 @@
       "username": "kenjisato",
       "bio": "Placeholder bio for Kenji Sato.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": false,
       "submitter": true,
       "talks": [
@@ -230,8 +210,6 @@
       "username": "fatimarahman",
       "bio": "Placeholder bio for Fatima Rahman.",
       "requests_sponsorship": false,
-      "unconference": false,
-      "unconference_idea": "",
       "in_person": true,
       "submitter": false,
       "talks": [
@@ -251,8 +229,6 @@
       "username": "bencarter",
       "bio": "Placeholder bio for Ben Carter.",
       "requests_sponsorship": true,
-      "unconference": true,
-      "unconference_idea": "Placeholder unconference idea.",
       "in_person": true,
       "submitter": false,
       "talks": [
@@ -272,8 +248,8 @@
       "submitted_at": "2026-09-01T09:00:00Z",
       "abstract": "Placeholder abstract for \"Designing for Trust\".",
       "topic": "topic-devices",
-      "discourse_id": 1001,
-      "duration_minutes": 5
+      "duration_minutes": 5,
+      "discourse_id": 1001
     }
   },
   {
@@ -287,8 +263,8 @@
       "submitted_at": "2026-09-02T09:00:00Z",
       "abstract": "Placeholder abstract for \"Open Source at Scale\".",
       "topic": "topic-security",
-      "discourse_id": 1002,
-      "duration_minutes": 25
+      "duration_minutes": 25,
+      "discourse_id": 1002
     }
   },
   {
@@ -302,8 +278,8 @@
       "submitted_at": "2026-09-03T09:00:00Z",
       "abstract": "Placeholder abstract for \"The Future of Teams\".",
       "topic": "topic-dev",
-      "discourse_id": 1003,
-      "duration_minutes": 45
+      "duration_minutes": 45,
+      "discourse_id": 1003
     }
   },
   {
@@ -317,8 +293,8 @@
       "submitted_at": "2026-09-04T09:00:00Z",
       "abstract": "Placeholder abstract for \"Making Data Human\".",
       "topic": "topic-ai",
-      "discourse_id": 1004,
-      "duration_minutes": 5
+      "duration_minutes": 5,
+      "discourse_id": 1004
     }
   },
   {
@@ -332,8 +308,8 @@
       "submitted_at": "2026-09-05T09:00:00Z",
       "abstract": "Placeholder abstract for \"Beyond the Roadmap\".",
       "topic": "topic-devices",
-      "discourse_id": 1005,
-      "duration_minutes": 25
+      "duration_minutes": 25,
+      "discourse_id": 1005
     }
   },
   {
@@ -347,8 +323,8 @@
       "submitted_at": "2026-09-06T09:00:00Z",
       "abstract": "Placeholder abstract for \"Secure by Default in Practice\".",
       "topic": "topic-security",
-      "discourse_id": 1006,
-      "duration_minutes": 45
+      "duration_minutes": 45,
+      "discourse_id": 1006
     }
   },
   {
@@ -362,8 +338,8 @@
       "submitted_at": "2026-09-07T09:00:00Z",
       "abstract": "Placeholder abstract for \"Local AI for Everyone\".",
       "topic": "topic-dev",
-      "discourse_id": 1007,
-      "duration_minutes": 5
+      "duration_minutes": 5,
+      "discourse_id": 1007
     }
   },
   {
@@ -377,8 +353,8 @@
       "submitted_at": "2026-09-08T09:00:00Z",
       "abstract": "Placeholder abstract for \"Building Community Hardware\".",
       "topic": "topic-ai",
-      "discourse_id": 1008,
-      "duration_minutes": 25
+      "duration_minutes": 25,
+      "discourse_id": 1008
     }
   },
   {
@@ -392,8 +368,8 @@
       "submitted_at": "2026-09-09T09:00:00Z",
       "abstract": "Placeholder abstract for \"Reproducible Builds Revisited\".",
       "topic": "topic-devices",
-      "discourse_id": 1009,
-      "duration_minutes": 45
+      "duration_minutes": 45,
+      "discourse_id": 1009
     }
   },
   {
@@ -407,8 +383,8 @@
       "submitted_at": "2026-09-10T09:00:00Z",
       "abstract": "Placeholder abstract for \"Developer Experience Roundtable\".",
       "topic": "topic-security",
-      "discourse_id": 1010,
-      "duration_minutes": 5
+      "duration_minutes": 5,
+      "discourse_id": 1010
     }
   }
 ]

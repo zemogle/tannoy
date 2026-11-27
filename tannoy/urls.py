@@ -26,6 +26,9 @@ urlpatterns = [
     path('', RedirectView.as_view(pattern_name='submissions', permanent=False)),
     path('submissions/', event_views.submissions, name='submissions'),
     path('submissions/<int:talk_id>/', event_views.TalkDetailView.as_view(), name='talk-detail'),
+    path('events/', event_views.events, name='events'),
+    path('events/<int:event_id>/', event_views.event_detail, name='event-detail'),
+    path('events/<int:event_id>/programme/', event_views.programme_builder, name='programme-builder'),
     path('admin/', admin.site.urls),
     path('api/', include('events.urls')),
 ]

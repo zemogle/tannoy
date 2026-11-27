@@ -35,6 +35,7 @@
             <th>Speakers</th>
             <th>Submitted date</th>
             <th>Event</th>
+            {% if section.key == 'accepted' %}<th>Published</th>{% endif %}
           </tr>
         </thead>
         <tbody>
@@ -53,10 +54,13 @@
               </td>
               <td class="u-text--muted">{{ talk.submitted_at|date:"d.m.y" }}</td>
               <td class="u-text--muted">{{ talk.event.start_date|date:"d.m" }}</td>
+              {% if section.key == 'accepted' %}
+                <td>{% if talk.published %}<span class="p-icon--success" role="img" aria-label="Published" title="Published"></span>{% endif %}</td>
+              {% endif %}
             </tr>
           {% empty %}
             <tr>
-              <td colspan="5" class="u-text--muted">No {{ section.label|lower }} submissions match these filters.</td>
+              <td colspan="{% if section.key == 'accepted' %}6{% else %}5{% endif %}" class="u-text--muted">No {{ section.label|lower }} submissions match these filters.</td>
             </tr>
           {% endfor %}
         </tbody>

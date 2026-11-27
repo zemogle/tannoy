@@ -1,0 +1,40 @@
+{% extends "events/base.html" %}
+{% load static %}
+
+{% block title %}Events - Tannoy{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'events/css/submissions.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="col-9">
+    <h1 class="p-heading--2">Events</h1>
+
+    {% if next_event %}
+      <h2 class="p-heading--4">Next event</h2>
+      <table class="submissions-table" aria-label="Next event">
+        <thead>
+          <tr><th>Event</th><th>Code</th><th>Dates</th><th>Talks</th></tr>
+        </thead>
+        <tbody>
+          {% with event=next_event %}{% include "events/_event_row.html" %}{% endwith %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <h2 class="p-heading--4">All events</h2>
+    <table class="submissions-table" aria-label="All events">
+      <thead>
+        <tr><th>Event</th><th>Code</th><th>Dates</th><th>Talks</th></tr>
+      </thead>
+      <tbody>
+        {% for event in other_events %}
+          {% include "events/_event_row.html" %}
+        {% empty %}
+          <tr><td colspan="4" class="u-text--muted">No other events.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -23,13 +23,20 @@
       <a href="{% url 'submissions' %}">Submissions</a> / Talk detail
     </p>
     {% if request.user.is_staff %}
-    <form method="post" action="{% url 'talk-detail' talk.id %}" class="talk-toolbar">
+    <form method="post" action="{% url 'talk-detail' talk.id %}" class="talk-toolbar" id="talk-actions">
       {% csrf_token %}
       <button type="submit" name="action" value="accept" class="p-button--positive"{% if 'accept' not in allowed_actions %} disabled{% endif %}>Accept</button>
       <button type="submit" name="action" value="reject" class="p-button--negative"{% if 'reject' not in allowed_actions %} disabled{% endif %}>Reject</button>
       <button type="submit" name="action" value="publish" class="p-button--brand"{% if 'publish' not in allowed_actions %} disabled{% endif %}>Publish</button>
+      <button type="button" id="generate-banner" class="p-button" data-url="{% url 'api-talk-banner' talk.id %}"{% if talk.status != 'accepted' %} disabled{% endif %}>Generate speaker banner</button>
+      <span id="banner-status" class="p-text--small u-text--muted" role="status"></span>
     </form>
     {% endif %}
+    {% for message in messages %}
+      <div class="{% if message.tags == 'error' %}p-notification--negative{% else %}p-notification--positive{% endif %}">
+        <p class="p-notification__response">{{ message }}</p>
+      </div>
+    {% endfor %}
     <h1 class="p-heading--2">{{ talk.title }}</h1>
     {% if talk.status == 'accepted' %}
       <span class="p-chip--positive"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
@@ -38,9 +45,23 @@
     {% else %}
       <span class="p-chip--caution"><span class="p-chip__value">{{ talk.get_status_display }}</span></span>
     {% endif %}
+    {% if talk.topic %}
+      <span class="p-chip"><span class="p-chip__value">{{ talk.get_topic_display }}</span></span>
+    {% endif %}
     {% if talk.published %}
       <span class="p-chip--information"><span class="p-chip__value">Published</span></span>
     {% endif %}
+    {% if talk.event.is_next %}
+      <span class="p-chip--branded">
+        <i class="p-icon--circle-of-friends"></i>
+        <span class="p-chip__value">Next Summit</span>
+      </span>
+    {% endif %}
+    <div class="p-notification--information">
+      <div class="p-notification__content">
+        <p class="p-notification__message">{% if talk.status == 'pending' or talk.status == 'rejected' %}Requested for{% else %}Scheduled for{% endif %} {{ talk.event.name }}</p>
+      </div>
+    </div>
     <h2 class="p-heading--5">Speakers</h2>
     {% for speaker in speakers %}
       <div class="row u-vertically-center">
@@ -83,14 +104,50 @@
     {% endif %}
 
     <p class="p-text--small u-text--muted">
-      {{ talk.event.name }} ({{ talk.event.start_date|date:"d.m.Y" }} &ndash; {{ talk.event.end_date|date:"d.m.Y" }}) &middot;
       Submitted {{ talk.submitted_at|date:"d.m.Y" }}
     </p>
-    {% if talk.topic %}
-      <p class="p-text--small u-text--muted">Topic: {{ talk.get_topic_display }}</p>
-    {% endif %}
-    {% if talk.discourse_id %}
-      <p class="p-text--small u-text--muted">Discourse ID: {{ talk.discourse_id }}</p>
-    {% endif %}
   </div>
+
+  <script>
+    (function () {
+      var button = document.getElementById('generate-banner');
+      if (!button) {
+        return;
+      }
+      var status = document.getElementById('banner-status');
+      button.addEventListener('click', function () {
+        var token = document.querySelector('#talk-actions input[name=csrfmiddlewaretoken]').value;
+        button.disabled = true;
+        status.textContent = 'Generating banner…';
+        fetch(button.dataset.url, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'X-CSRFToken': token, 'Accept': 'application/json'},
+        })
+          .then(function (response) {
+            return response.json().then(function (body) {
+              return {ok: response.ok, body: body};
+            });
+          })
+          .then(function (result) {
+            button.disabled = false;
+            status.textContent = '';
+            if (result.ok) {
+              status.appendChild(document.createTextNode('Banner ready: '));
+              var link = document.createElement('a');
+              link.href = result.body.banner_url;
+              link.target = '_blank';
+              link.textContent = 'open banner';
+              status.appendChild(link);
+            } else {
+              status.textContent = result.body.message || 'Banner generation failed.';
+            }
+          })
+          .catch(function () {
+            button.disabled = false;
+            status.textContent = 'Banner generation failed.';
+          });
+      });
+    })();
+  </script>
 {% endblock %}
